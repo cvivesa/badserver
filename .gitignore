@@ -1,0 +1,5 @@
+db.sqlite3
+env
+parking/migrations/0*
+.env
+*.pyc
