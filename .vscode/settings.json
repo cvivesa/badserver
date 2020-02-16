@@ -4,5 +4,7 @@
         "createsuperuser",
         "unregister"
     ],
-    "python.linting.enabled": false
+    "python.linting.enabled": false,
+    "python.formatting.provider": "black",
+    "python.pythonPath": "/home/pconte/Documents/code/badserver/env/bin/python3"
 }

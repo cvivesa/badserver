@@ -4,14 +4,16 @@ from django.contrib.auth.models import User
 
 from .models import EOSAccount, Lot, Spot, Group, Future, Option
 
+
 class EOSAccountInline(admin.StackedInline):
     model = EOSAccount
     can_delete = False
-    verbose_name_plural = 'EOS Account'
+    verbose_name_plural = "EOS Account"
 
 
 class UserAdmin(BaseUserAdmin):
     inlines = (EOSAccountInline,)
+
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
