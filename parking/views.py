@@ -10,6 +10,21 @@ import pytz
 from .models import Spot, Future
 from .tables import FutureTable
 from .forms import FutureCallForm, FuturePutForm
+from .filters import FutureFilter
+
+
+class FilteredSingleTableView(LoginRequiredMixin, SingleTableView):
+    filter_class = None
+
+    def get_table_data(self):
+        data = self.get_queryset()
+        self.filter = self.filter_class(self.request.GET, queryset=data)
+        return self.filter.qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["filter"] = self.filter
+        return context
 
 
 @login_required
@@ -45,9 +60,10 @@ class FuturePutCreate(LoginRequiredMixin, CreateView):
         return "/"
 
 
-class FutureCallList(LoginRequiredMixin, SingleTableView):
+class FutureCallList(FilteredSingleTableView):
     table_class = FutureTable
     template_name = "lists/future_call.html"
+    filter_class = FutureFilter
 
     def get_queryset(self):
         return Future.objects.filter(
