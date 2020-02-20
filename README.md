@@ -22,3 +22,12 @@ docker-compose up -d
 docker-compose exec web python manage.py makemigrations
 docker-compose exec web python manage.py migrate
 ```
+
+## Shell
+You can use ```docker-compose exec web python manage.py shell``` to experiment with queries
+I recommend often importing the following
+```python
+from django.contrib.auth.models import User
+from django.utils import timezone
+from parking.models import *
+```

@@ -12,7 +12,8 @@ urlpatterns = [
     path("futures/puts", views.FuturePutList.as_view(), name="future_put_list"),
     path("futures/puts/new", views.FuturePutCreate.as_view(), name="future_put_create"),
     path("futures/transact/<int:pk>", views.future_transact, name="future_transact"),
+    path("spots/me", views.AccessibleSpotList.as_view(), name="accessible"),
+    path("spots/lookup", views.Whitepages.as_view(), name="whitepages"),
     path("", include("django.contrib.auth.urls")),
     path("signup", views.SignUp.as_view(), name="sign_up"),
 ]
-

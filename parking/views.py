@@ -8,9 +8,9 @@ from django_tables2 import SingleTableView
 import pytz
 
 from .models import Spot, Future
-from .tables import FutureTable
+from .tables import FutureTable, AcceptedFutureTable
 from .forms import FutureCallForm, FuturePutForm
-from .filters import FutureFilter
+from .filters import FutureFilter, SingleUserSpotFilter, MultipleUserSpotFilter
 
 
 class FilteredSingleTableView(LoginRequiredMixin, SingleTableView):
@@ -18,7 +18,9 @@ class FilteredSingleTableView(LoginRequiredMixin, SingleTableView):
 
     def get_table_data(self):
         data = self.get_queryset()
-        self.filter = self.filter_class(self.request.GET, queryset=data)
+        self.filter = self.filter_class(
+            self.request.GET, queryset=data, a=self.request.user.a
+        )
         return self.filter.qs
 
     def get_context_data(self, **kwargs):
@@ -128,6 +130,17 @@ def future_transact(request, pk):
     f.seller.balance += f.price
     f.seller.save()
     return redirect("index")
+
+
+class AccessibleSpotList(FilteredSingleTableView):
+    table_class = AcceptedFutureTable
+    template_name = "lists/base.html"
+    filter_class = SingleUserSpotFilter
+    model = Future
+
+
+class Whitepages(AccessibleSpotList):
+    filter_class = MultipleUserSpotFilter
 
 
 class SignUp(CreateView):

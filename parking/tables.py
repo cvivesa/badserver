@@ -10,3 +10,10 @@ class FutureTable(tables.Table):
         model = Future
         fields = ("lot", "start_time", "end_time", "request_expiration_time", "price")
         attrs = {"class": "table"}
+
+
+class AcceptedFutureTable(tables.Table):
+    class Meta:
+        model = Future
+        fields = ("lot", "start_time", "end_time")
+        attrs = {"class": "table"}

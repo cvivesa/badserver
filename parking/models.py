@@ -19,7 +19,7 @@ class EOSAccount(models.Model):
     #
     # Should add any new manually entered fields to REQUIRED_FIELDS
 
-    # TODO find out precision and decide on default
+    #  find out precision and decide on default
     balance = models.DecimalField(default=1000.0, max_digits=20, decimal_places=10)
     minimum_balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=10)
 
@@ -39,9 +39,9 @@ class EOSAccount(models.Model):
 class Group(models.Model):
     name = models.CharField(max_length=50)
     creator = models.ForeignKey(
-        EOSAccount, related_name="owned_groups", on_delete=models.CASCADE
+        EOSAccount, related_name="created_groups", on_delete=models.CASCADE
     )
-    members = models.ManyToManyField(EOSAccount, related_name="+")
+    members = models.ManyToManyField(EOSAccount, related_name="joined_groups")
     Fee = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_price = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_ratio = models.DecimalField(max_digits=3, decimal_places=2)
@@ -67,7 +67,7 @@ class Spot(models.Model):
     def __str__(self):
         return "{} | {}".format(self.lot.name, self.number)
 
-
+# TODO: note this wont account for two back-to-back purchases that combined cover the range
 class FutureQuerySet(models.QuerySet):
     def owned_by(self, a, start, end):
         sales = self.filter(seller=a, buyer__isnull=False).filter(
@@ -78,6 +78,24 @@ class FutureQuerySet(models.QuerySet):
 
         return self.filter(
             start_time__lte=start, end_time__gte=end, buyer=a, seller__isnull=False,
+        ).exclude(id__in=sales)
+
+    def owned_by_groups(self, a, start, end):
+        groups = a.joined_groups.all()
+        owners = groups.values_list("creator", flat=True)
+
+        sales = self.filter(seller__in=owners, buyer__isnull=False).filter(
+            Q(start_time__gte=start, start_time__lte=end)
+            | Q(end_time__gte=start, end_time__lte=end)
+            | Q(start_time__lte=start, end_time__gte=end),
+        )
+
+        return self.filter(
+            start_time__lte=start,
+            end_time__gte=end,
+            group__in=groups,
+            seller__isnull=False,
+            buyer__isnull=False,
         ).exclude(id__in=sales)
 
 
