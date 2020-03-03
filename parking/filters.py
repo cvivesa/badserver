@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 
-from .models import Future, EOSAccount
+from .models import Future, EOSAccount, Option
 
 
 class FutureFilter(filters.FilterSet):
@@ -19,10 +19,21 @@ class FutureFilter(filters.FilterSet):
             f.field.widget.attrs.update({"class": "input"})
 
 
+class OptionFilter(FutureFilter):
+    class Meta(FutureFilter.Meta):
+        model = Option
+        fields = {
+            "lot": ["exact"],
+            "start_time": ["lte"],
+            "end_time": ["gte"],
+            "request_expiration_time": ["lte"],
+            "fee": ["gte"],
+            "collateral": ["gte"],
+        }
+
+
 class SingleUserSpotFilter(filters.FilterSet):
-    date_range = filters.DateTimeFromToRangeFilter(
-        label="Date Range", method="accessible"
-    )
+    date_range = filters.DateTimeFromToRangeFilter(label="Date Range")
 
     class Meta:
         model = Future
@@ -34,10 +45,13 @@ class SingleUserSpotFilter(filters.FilterSet):
         for _, f in self.filters.items():
             f.field.widget.attrs.update({"class": "input"})
 
-    def accessible(self, queryset, name, value):
-        return queryset.owned_by(self.a, value.start, value.stop).union(
-            queryset.owned_by_groups(self.a, value.start, value.stop)
-        )
+    def filter_queryset(self, queryset):
+        dates = self.form.cleaned_data.get("date_range", None)
+        if dates:
+            return queryset.owned_by(self.a, dates.start, dates.stop).union(
+                queryset.owned_by_groups(self.a, dates.start, dates.stop)
+            )
+        return Future.objects.none()
 
 
 class MultipleUserSpotFilter(filters.FilterSet):
@@ -51,7 +65,6 @@ class MultipleUserSpotFilter(filters.FilterSet):
             f.field.widget.attrs.update({"class": "input"})
 
     def filter_queryset(self, queryset):
-        print(self.form.cleaned_data)
         a = self.form.cleaned_data.get("user", None)
         dates = self.form.cleaned_data.get("date_range", None)
         if a and dates:

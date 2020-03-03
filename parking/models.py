@@ -67,7 +67,10 @@ class Spot(models.Model):
     def __str__(self):
         return "{} | {}".format(self.lot.name, self.number)
 
-# TODO: note this wont account for two back-to-back purchases that combined cover the range
+
+# TODO: note this wont account for any of:
+#  two back-to-back purchases that combined cover the range
+#  selling a spot and buying it back
 class FutureQuerySet(models.QuerySet):
     def owned_by(self, a, start, end):
         sales = self.filter(seller=a, buyer__isnull=False).filter(
@@ -126,6 +129,11 @@ class Future(models.Model):
 class Option(Future):
     fee = models.DecimalField(max_digits=20, decimal_places=10)
     collateral = models.DecimalField(max_digits=20, decimal_places=10)
+    # option is valid until Future.request_expiration_time
+
+    def get_absolute_url(self):
+        # TODO account for different link for purchases to specify group
+        return reverse("option_transact", args=[self.pk])
 
 
 @receiver(post_save, sender=User, dispatch_uid="create_user_eos_account")
