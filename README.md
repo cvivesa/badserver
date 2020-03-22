@@ -17,6 +17,7 @@ Requires Docker and docker-compose
 git clone https://github.com/PhilipConte/badserver
 cd badserver
 echo "BAD_DEBUG=1
+BAD_ALLOWED_HOSTS=*
 BAD_SECRET_KEY=temp
 DATABASE_URL=postgres://postgres:temp@db/bad_db
 POSTGRES_PASSWORD=temp" > .env

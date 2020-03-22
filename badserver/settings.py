@@ -26,7 +26,7 @@ SECRET_KEY = environ.get("BAD_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(environ.get("BAD_DEBUG")))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = environ.get('BAD_ALLOWED_HOSTS').split(',')
 
 
 # Application definition
