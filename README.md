@@ -17,7 +17,9 @@ Requires Docker and docker-compose
 git clone https://github.com/PhilipConte/badserver
 cd badserver
 echo "BAD_DEBUG=1
-BAD_SECRET_KEY=super_secure_tm" > .env
+BAD_SECRET_KEY=temp
+DATABASE_URL=postgres://postgres:temp@db/bad_db
+POSTGRES_PASSWORD=temp" > .env
 docker-compose up -d
 docker-compose exec web python manage.py makemigrations
 docker-compose exec web python manage.py migrate
