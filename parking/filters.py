@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 
-from .models import Future, EOSAccount, Option
+from .models import *
 
 
 class FutureFilter(filters.FilterSet):
@@ -15,8 +15,6 @@ class FutureFilter(filters.FilterSet):
     def __init__(self, *args, **kwargs):
         del kwargs["a"]
         super().__init__(*args, **kwargs)
-        for _, f in self.filters.items():
-            f.field.widget.attrs.update({"class": "input"})
 
 
 class OptionFilter(FutureFilter):
@@ -42,8 +40,6 @@ class SingleUserSpotFilter(filters.FilterSet):
     def __init__(self, *args, **kwargs):
         self.a = kwargs.pop("a", None)
         super().__init__(*args, **kwargs)
-        for _, f in self.filters.items():
-            f.field.widget.attrs.update({"class": "input"})
 
     def filter_queryset(self, queryset):
         dates = self.form.cleaned_data.get("date_range", None)
@@ -61,8 +57,6 @@ class MultipleUserSpotFilter(filters.FilterSet):
     def __init__(self, *args, **kwargs):
         self.a = kwargs.pop("a", None)
         super().__init__(*args, **kwargs)
-        for _, f in self.filters.items():
-            f.field.widget.attrs.update({"class": "input"})
 
     def filter_queryset(self, queryset):
         a = self.form.cleaned_data.get("user", None)
@@ -72,3 +66,18 @@ class MultipleUserSpotFilter(filters.FilterSet):
                 queryset.owned_by_groups(a, dates.start, dates.stop)
             )
         return Future.objects.none()
+
+
+class GroupFilter(filters.FilterSet):
+    class Meta(FutureFilter.Meta):
+        model = Group
+        fields = {
+            "name": ["icontains"],
+            "fee": ["lte"],
+            "minimum_price": ["gte"],
+            "minimum_ratio": ["gte"],
+        }
+
+    def __init__(self, *args, **kwargs):
+        del kwargs["a"]
+        super().__init__(*args, **kwargs)

@@ -22,6 +22,8 @@ urlpatterns = [
     path("spots/me", views.AccessibleSpotList.as_view(), name="accessible"),
     path("spots/me/pending", views.UserUnfullfilledFutureList.as_view(), name="pending"),
     path("spots/lookup", views.Whitepages.as_view(), name="whitepages"),
+    path("groups/create", views.GroupCreate.as_view(), name="group_create"),
+    path("groups/list", views.GroupList.as_view(), name="group_list"),
     path("", include("django.contrib.auth.urls")),
     path("signup", views.SignUp.as_view(), name="sign_up"),
 ]

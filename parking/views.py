@@ -9,7 +9,6 @@ import pytz
 
 from .models import *
 from .tables import *
-from .forms import *
 from .filters import *
 
 
@@ -36,7 +35,14 @@ def index(request):
 
 class FutureCallCreate(LoginRequiredMixin, CreateView):
     model = Future
-    form_class = FutureCallForm
+    fields = [
+        "lot",
+        "start_time",
+        "end_time",
+        "request_expiration_time",
+        "price",
+        "group",
+    ]
     template_name = "create_form.html"
 
     def form_valid(self, form):
@@ -50,7 +56,7 @@ class FutureCallCreate(LoginRequiredMixin, CreateView):
 
 class FuturePutCreate(LoginRequiredMixin, CreateView):
     model = Future
-    form_class = FuturePutForm
+    fields = ["lot", "start_time", "end_time", "request_expiration_time", "price"]
     template_name = "create_form.html"
 
     def form_valid(self, form):
@@ -88,6 +94,7 @@ class FuturePutList(FutureCallList):
 
 @login_required
 def future_transact(request, pk):
+    # TODO consider groups
     # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
     f = get_object_or_404(Future, pk=pk)
@@ -134,7 +141,16 @@ def future_transact(request, pk):
 
 class OptionCallCreate(LoginRequiredMixin, CreateView):
     model = Option
-    form_class = OptionCallForm
+    fields = [
+        "lot",
+        "start_time",
+        "end_time",
+        "request_expiration_time",
+        "price",
+        "group",
+        "fee",
+        "collateral",
+    ]
     template_name = "create_form.html"
 
     def form_valid(self, form):
@@ -148,7 +164,15 @@ class OptionCallCreate(LoginRequiredMixin, CreateView):
 
 class OptionPutCreate(LoginRequiredMixin, CreateView):
     model = Option
-    form_class = OptionPutForm
+    fields = [
+        "lot",
+        "start_time",
+        "end_time",
+        "request_expiration_time",
+        "price",
+        "fee",
+        "collateral",
+    ]
     template_name = "create_form.html"
 
     def form_valid(self, form):
@@ -187,6 +211,8 @@ class OptionPutList(OptionCallList):
 @login_required
 def option_transact(request, pk):
     return redirect("index")
+
+    # TODO consider groups
 
 
 """
@@ -259,6 +285,52 @@ class UserUnfullfilledFutureList(FutureCallList):
 class Whitepages(AccessibleSpotList):
     template_name = "lists/base.html"
     filter_class = MultipleUserSpotFilter
+
+
+class GroupCreate(LoginRequiredMixin, CreateView):
+    model = Group
+    fields = ["name", "fee", "minimum_price", "minimum_ratio"]
+    template_name = "create_form.html"
+
+    def form_valid(self, form):
+        form.instance.creator = self.request.user.a
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        print(vars(self.object))
+        return "/"
+
+
+class GroupList(FilteredSingleTableView):
+    table_class = GroupTable
+    template_name = "lists/base.html"
+    filter_class = GroupFilter
+
+    def get_queryset(self):
+        return Group.objects.exclude(creator=self.request.user.a)
+
+
+@login_required
+def group_join(request, pk):
+    e = lambda msg: render(request, "error.html", {"msg": msg})
+    g = get_object_or_404(Group, pk=pk)
+    a = request.user.a
+
+    # TODO a person joining a group could make the minimums fail
+
+    if g.owner == a:
+        return e("You're Automatically In Your Own Group")
+    if a.net_balance() < g.fee:
+        return e("You Don't Have Enough (Un-Reserved) Funds")
+    # TODO Handle Ratios
+
+    a.balance -= g.fee
+    a.save()
+    g.owner.balance += g.fee
+    g.owner.save()
+
+    g.members.add(a)
+    return redirect("index")
 
 
 class SignUp(CreateView):

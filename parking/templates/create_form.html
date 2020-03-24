@@ -1,13 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="columns is-mobile"><div class="column is-half is-offset-one-quarter">
-    <form method="post">{% csrf_token %}
-        {{ form }}
-        <input class="button is-primary" type="submit" value="Save">
-    </form>
-</div></div>
-
-
+<form method="post">
+    {% csrf_token %}
+    <div class=filter-grid>{{ form.as_p }}</div>
+    <p><input type="submit" value="Save"></p>
+</form>
 
 {% endblock %}

@@ -1,6 +1,6 @@
 import django_tables2 as tables
 
-from .models import Future, Option
+from .models import *
 
 
 class FutureTable(tables.Table):
@@ -9,14 +9,12 @@ class FutureTable(tables.Table):
     class Meta:
         model = Future
         fields = ("lot", "start_time", "end_time", "request_expiration_time", "price")
-        attrs = {"class": "table"}
 
 
 class AcceptedFutureTable(tables.Table):
     class Meta:
         model = Future
         fields = ("lot", "start_time", "end_time")
-        attrs = {"class": "table"}
 
 
 class OptionTable(tables.Table):
@@ -33,4 +31,9 @@ class OptionTable(tables.Table):
             "fee",
             "collateral",
         )
-        attrs = {"class": "table"}
+
+
+class GroupTable(tables.Table):
+    class Meta:
+        model = Group
+        fields = ("name", "fee", "minimum_price", "minimum_ratio")

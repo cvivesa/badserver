@@ -9,7 +9,7 @@
         {{ filter.form.as_p }}
     </div>
     <p>
-        <input type='submit' value='Filter' class="button is-primary" />
+        <input type='submit' value='Filter' />
         Displaying {{ table.page.start_index }} - {{ table.page.end_index }} of {{ table.paginator.count }} |
         <a href='{{ request.path }}' >Clear</a>
     </p>
