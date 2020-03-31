@@ -215,25 +215,25 @@ def option_transact(request, pk):
     # TODO consider groups
 
 
-"""
+
     # change all references of Future to Option
     # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
-    f = get_object_or_404(Future, pk=pk)
+    f = get_object_or_404(Option, pk=pk)
     a = request.user.a
 
     if timezone.now() > f.request_expiration_time:
-        return e("The Future is Expired")
+        return e("The Option is Expired")
     if f.buyer == a or f.seller == a:
-        return e("You can't Accept Your Own Future")
+        return e("You can't Accept Your Own Option")
     if f.buyer and f.seller:
-        return e("The Future was Already Accepted")
+        return e("The Option was Already Accepted")
 
     if f.seller == None:
         if f.buyer.net_balance() < f.price:
-            return e("The Buyer didn't Have Enough Funds")
+            return e("The Buyer didn't Have Enough Funds or there was not enough to cover the colateral")
         s = (
-            Future.objects.filter(lot=f.lot)
+            Option.objects.filter(lot=f.lot)
             .owned_by(a, f.start_time, f.end_time)
             .first()
         )
@@ -242,9 +242,9 @@ def option_transact(request, pk):
         f.seller = a
     else:
         if a.net_balance() < f.price:
-            return e("You didn't Have Enough Funds")
+            return e("You didn't Have Enough Funds or there was not enough to cover the colateral")
         s = (
-            Future.objects.filter(lot=f.lot)
+            Option.objects.filter(lot=f.lot)
             .owned_by(f.seller, f.start_time, f.end_time)
             .first()
         )
@@ -260,7 +260,7 @@ def option_transact(request, pk):
     f.seller.save()
     # remember to actually create the corresponding future
     return redirect("index")
-"""
+
 
 
 class AccessibleSpotList(FilteredSingleTableView):
