@@ -27,7 +27,10 @@ class EOSAccount(models.Model):
 
     def net_balance(self):
         t = timezone.now()
-        options = Option.objects.filter(seller=self,buyer__isnull=False,end_time__gt = t)
+        options = Option.objects.filter(end_time__gt = t).filter(
+            (Q(seller=self) & Q(buyer__isnull=False))
+            | (Q(buyer=self) & Q(seller__isnull=False))
+        ).exclude(creator=self)
         s = options.aggregate(Sum("collateral")).get("collateral__sum",0)
         if s:
             return self.balance - s
@@ -35,7 +38,7 @@ class EOSAccount(models.Model):
 
     def collateral(self):
         return self.balance - self.net_balance()
-        
+
     def owns(self, spot, start, end):
         return Future.objects.filter(spot=spot).owned_by(self, start, end).exists()
 
@@ -133,14 +136,35 @@ class Future(models.Model):
         return reverse("future_transact", args=[self.pk])
 
 
-class Option(Future):
+class Option(models.Model):
+    buyer = models.ForeignKey(
+        EOSAccount, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
+    seller = models.ForeignKey(
+        EOSAccount, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
+    lot = models.ForeignKey(Lot, on_delete=models.CASCADE)
+    spot = models.ForeignKey(Spot, null=True, blank=True, on_delete=models.CASCADE)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField(blank=True)
+    request_expiration_time = models.DateTimeField()
+    price = models.DecimalField(max_digits=20, decimal_places=10)
+    group = models.ForeignKey(
+        Group, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
     fee = models.DecimalField(max_digits=20, decimal_places=10)
     collateral = models.DecimalField(max_digits=20, decimal_places=10)
+    creator = models.ForeignKey(
+        EOSAccount, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
     # option is valid until Future.request_expiration_time
 
     def get_absolute_url(self):
-        # TODO account for different link for purchases to specify group
+        if self.buyer and self.seller:
+            return reverse("option_exercise", args=[self.pk])
         return reverse("option_transact", args=[self.pk])
+
+
 
 
 @receiver(post_save, sender=User, dispatch_uid="create_user_eos_account")

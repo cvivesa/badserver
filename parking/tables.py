@@ -14,7 +14,7 @@ class FutureTable(tables.Table):
 class AcceptedFutureTable(tables.Table):
     class Meta:
         model = Future
-        fields = ("lot", "start_time", "end_time")
+        fields = ("spot","start_time", "end_time")
 
 
 class OptionTable(tables.Table):
@@ -32,7 +32,18 @@ class OptionTable(tables.Table):
             "collateral",
         )
 
+class AcceptedOptionTable(tables.Table):
+    lot = tables.Column(linkify=True)
 
+    class Meta:
+        model = Option
+        fields = (
+            "lot",
+            "start_time",
+            "end_time",
+            "price",
+            #TODO Add way to find market value of spot (average of 3 last spots sold)
+        )
 class GroupTable(tables.Table):
     class Meta:
         model = Group
