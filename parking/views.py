@@ -5,6 +5,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.views.generic.edit import CreateView
 from django_tables2 import SingleTableView
+from django.forms.models import model_to_dict
 import pytz
 
 from .models import *
@@ -99,14 +100,12 @@ def future_transact(request, pk):
     e = lambda msg: render(request, "error.html", {"msg": msg})
     f = get_object_or_404(Future, pk=pk)
     a = request.user.a
-
     if timezone.now() > f.request_expiration_time:
         return e("The Future is Expired")
     if f.buyer == a or f.seller == a:
         return e("You can't Accept Your Own Future")
     if f.buyer and f.seller:
         return e("The Future was Already Accepted")
-
     if f.seller == None:
         if f.buyer.net_balance() < f.price:
             return e("The Buyer didn't Have Enough Funds")
@@ -155,6 +154,8 @@ class OptionCallCreate(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.buyer = self.request.user.a
+        form.instance.creator = self.request.user.a
+
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -177,6 +178,8 @@ class OptionPutCreate(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.seller = self.request.user.a
+        form.instance.creator = self.request.user.a
+
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -207,16 +210,20 @@ class OptionPutList(OptionCallList):
             buyer=None, request_expiration_time__gte=timezone.now(),
         )  # .exclude(spot__in=self.request.user.a.owned_spots.all())
 
+class AcceptedOptionList(FilteredSingleTableView):
+    table_class = AcceptedOptionTable
+    template_name = "lists/base.html"
+    filter_class = AcceptedOptionFilter
+
+    def get_queryset(self):
+        return Option.objects.filter(
+            creator=self.request.user.a,
+            end_time__gte=timezone.now(),
+        )
 
 @login_required
 def option_transact(request, pk):
-    return redirect("index")
-
     # TODO consider groups
-
-
-
-    # change all references of Future to Option
     # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
     f = get_object_or_404(Option, pk=pk)
@@ -229,11 +236,15 @@ def option_transact(request, pk):
     if f.buyer and f.seller:
         return e("The Option was Already Accepted")
 
+    if a.net_balance() < f.collateral:
+            return e("You did not have enough funds to cover the collateral")
+
     if f.seller == None:
-        if f.buyer.net_balance() < f.price:
-            return e("The Buyer didn't Have Enough Funds or there was not enough to cover the colateral")
+        if f.buyer.net_balance() < f.fee:
+            return e("The Buyer didn't Have Enough Funds")
+        
         s = (
-            Option.objects.filter(lot=f.lot)
+            Future.objects.filter(lot=f.lot)
             .owned_by(a, f.start_time, f.end_time)
             .first()
         )
@@ -241,10 +252,10 @@ def option_transact(request, pk):
             return e("You didn't Have A Qualifying Spot")
         f.seller = a
     else:
-        if a.net_balance() < f.price:
-            return e("You didn't Have Enough Funds or there was not enough to cover the colateral")
+        if a.net_balance() < f.fee:
+            return e("You didn't Have Enough Funds  to cover the fee")
         s = (
-            Option.objects.filter(lot=f.lot)
+            Future.objects.filter(lot=f.lot)
             .owned_by(f.seller, f.start_time, f.end_time)
             .first()
         )
@@ -252,13 +263,54 @@ def option_transact(request, pk):
             return e("The Seller didn't Have A Qualifying Spot")
         f.buyer = a
 
-    f.spot = s
+    #f.spot = s
     f.save()
-    f.buyer.balaFuturence -= f.price
+    f.buyer.balance -= f.fee
+    f.buyer.save()
+    f.seller.balance += f.fee
+    f.seller.save()
+    return redirect("index")
+
+@login_required
+def option_exercise(request,pk):
+    # TODO consider groups
+    # TODO should delete on failure
+    e = lambda msg: render(request, "error.html", {"msg": msg})
+    o = get_object_or_404(Option, pk=pk)
+    a = request.user.a
+    if o.creator!=a:
+        return e("You cannot exercise the option if you did not issue it!")
+
+    f = Future()
+
+    f.buyer = o.buyer
+    f.seller = o.seller
+    f.lot = o.lot
+    f.start_time = o.start_time
+    f.end_time = o.end_time
+    f.request_expiration_time = o.request_expiration_time
+    f.group = o.group
+    f.price = o.price
+    o.delete()
+
+    # if f.temp.net_balance() < f.price:
+        #TODO Colateral
+        # return e("You didn't Have Enough Funds")
+    s = (
+        Future.objects.filter(lot=f.lot)
+        .owned_by(f.seller, f.start_time, f.end_time)
+        .first()
+    )
+    # if not s:
+        # return e("The Seller didn't Have A Qualifying Spot")
+
+    #f.spot = s
+    f.save()
+    f.buyer.balance -= f.price
     f.buyer.save()
     f.seller.balance += f.price
     f.seller.save()
-    # remember to actually create the corresponding future
+    
     return redirect("index")
 
 
