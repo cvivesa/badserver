@@ -1,10 +1,10 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
-
+from django.utils import timezone
 
 class EOSAccount(models.Model):
     user = models.OneToOneField(User, related_name="a", on_delete=models.CASCADE)
@@ -21,14 +21,21 @@ class EOSAccount(models.Model):
 
     #  find out precision and decide on default
     balance = models.DecimalField(default=1000.0, max_digits=20, decimal_places=10)
-    minimum_balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=10)
 
     def __str__(self):
         return str(self.user)
 
     def net_balance(self):
-        return self.balance - self.minimum_balance
+        t = timezone.now()
+        options = Option.objects.filter(seller=self,buyer__isnull=False,end_time__gt = t)
+        s = options.aggregate(Sum("collateral")).get("collateral__sum",0)
+        if s:
+            return self.balance - s
+        return self.balance
 
+    def collateral(self):
+        return self.balance - self.net_balance()
+        
     def owns(self, spot, start, end):
         return Future.objects.filter(spot=spot).owned_by(self, start, end).exists()
 
