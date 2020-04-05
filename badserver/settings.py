@@ -26,12 +26,13 @@ SECRET_KEY = environ.get("BAD_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(environ.get("BAD_DEBUG")))
 
-ALLOWED_HOSTS = environ.get('BAD_ALLOWED_HOSTS').split(',')
+ALLOWED_HOSTS = environ.get("BAD_ALLOWED_HOSTS").split(",")
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    "whitenoise.runserver_nostatic",
     "parking.apps.ParkingConfig",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -41,10 +42,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_tables2",
     "django_filters",
+    "rest_framework",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -113,3 +117,15 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [path.join(BASE_DIR, "static")]
+STATIC_ROOT = path.join(BASE_DIR, "staticfiles")
+
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 100,
+}
+
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_METHODS = (
+    "GET",
+    "OPTIONS",
+)
