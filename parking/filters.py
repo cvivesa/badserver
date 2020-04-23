@@ -35,9 +35,9 @@ class AcceptedOptionFilter(FutureFilter):
         model = Option
         fields = {
             "lot": ["exact"],
-            "start_time": ["lte"],
-            "end_time": ["gte"],
-            "price": ["lte","gte"]
+            #"start_time": ["lte"],
+            #"end_time": ["gte"],
+            #"price": ["lte","gte"]
 
         }
 
