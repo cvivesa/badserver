@@ -243,24 +243,24 @@ def option_transact(request, pk):
         if f.buyer.net_balance() < f.fee:
             return e("The Buyer didn't Have Enough Funds")
         
-        s = (
+        '''s = (
             Future.objects.filter(lot=f.lot)
             .owned_by(a, f.start_time, f.end_time)
             .first()
         )
         if not s:
-            return e("You didn't Have A Qualifying Spot")
+            return e("You didn't Have A Qualifying Spot")'''
         f.seller = a
     else:
         if a.net_balance() < f.fee:
             return e("You didn't Have Enough Funds  to cover the fee")
-        s = (
+        '''s = (
             Future.objects.filter(lot=f.lot)
             .owned_by(f.seller, f.start_time, f.end_time)
             .first()
         )
         if not s:
-            return e("The Seller didn't Have A Qualifying Spot")
+            return e("The Seller didn't Have A Qualifying Spot")'''
         f.buyer = a
 
     #f.spot = s
@@ -301,10 +301,10 @@ def option_exercise(request,pk):
         .owned_by(f.seller, f.start_time, f.end_time)
         .first()
     )
-    # if not s:
-        # return e("The Seller didn't Have A Qualifying Spot")
+    if not s:
+        return e("The Seller didn't Have A Qualifying Spot")
 
-    #f.spot = s
+    f.spot = s
     f.save()
     f.buyer.balance -= f.price
     f.buyer.save()
