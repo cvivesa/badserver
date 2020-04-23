@@ -52,11 +52,6 @@ a:visited {
     transform: translate(-50%,-50%);
 }
 
-.evenly-spaced-row {
-    display: flex;
-    justify-content: space-evenly;
-}
-
 .navbar {
     display: flex;
     justify-content: space-between;
@@ -68,17 +63,6 @@ a:visited {
 .navbar a {
     color: var(--foreground);
     font-size: x-large;
-}
-
-.pb {
-    padding-bottom: 2em;
-}
-
-.chart-div {
-    position: relative;
-    margin: auto;
-    height: 31vmin;
-    width: 31vmin;
 }
 
 .filter-grid {
@@ -177,4 +161,25 @@ td::after {
 .pagination li:last-child a {
     border-top-right-radius: 0.25em;
     border-bottom-right-radius: 0.25em;
+}
+
+.ct-chart {
+    /* flex:1 1 0;
+    overflow:hidden; */
+    height: 50vh;
+    width: 100%;
+}
+
+.ct-chart .ct-label {
+    fill: var(--foreground);
+    color: var(--foreground);
+}
+
+.ct-chart .ct-grid {
+    stroke: var(--foreground);
+}
+
+.ct-chart .ct-series-a .ct-line,
+.ct-chart .ct-series-a .ct-point {
+    stroke: var(--color1);
 }
