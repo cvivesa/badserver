@@ -135,8 +135,12 @@ def future_transact(request, pk):
     f.buyer.save()
     f.seller.balance += f.price
     f.seller.save()
+    remainder = (s.end_time - s.start_time).days
     #now modify s (the original future)
-    if s.start_time <= f.start_time:
+    if s.start_time == f.start_time and s.end_time == f.end_time:
+        s.delete()
+        return redirect("index")
+    if s.start_time < f.start_time:
         f1 = Future()
         f1.buyer = s.buyer
         f1.seller = s.seller
@@ -145,10 +149,11 @@ def future_transact(request, pk):
         f1.end_time = f.start_time
         f1.request_expiration_time = s.request_expiration_time
         f1.group = s.group
-        f1.price = s.price
+        #set the price to the day/price ratio
+        f1.price = s.price * (f1.end_time - f1.start_time).days/remainder
         f1.spot = s.spot
         f1.save()
-    if s.end_time >= f.end_time:
+    if s.end_time > f.end_time:
         f2 = Future()
         f2.buyer = s.buyer
         f2.seller = s.seller
@@ -157,7 +162,7 @@ def future_transact(request, pk):
         f2.end_time = s.end_time
         f2.request_expiration_time = s.request_expiration_time
         f2.group = s.group
-        f2.price = s.price
+        f2.price = s.price * (f2.end_time - f2.start_time).days/remainder
         f2.spot = s.spot
         f2.save()
     s.delete()
@@ -354,6 +359,10 @@ def option_exercise(request,pk):
     f.seller.balance += f.price
     f.seller.save()
     #now modify s (the original future)
+    if s.start_time == f.start_time and s.end_time == f.end_time:
+        s.delete()
+        return redirect("index")
+    remainder = (s.end_time - s.start_time).days
     if s.start_time < f.start_time:
         f1 = Future()
         f1.buyer = s.buyer
@@ -363,7 +372,7 @@ def option_exercise(request,pk):
         f1.end_time = f.start_time
         f1.request_expiration_time = s.request_expiration_time
         f1.group = s.group
-        f1.price = s.price
+        f1.price = s.price * (f1.end_time - f1.start_time).days/remainder
         f1.spot = s.spot
         f1.save()
     if s.end_time > f.end_time:
@@ -375,9 +384,11 @@ def option_exercise(request,pk):
         f2.end_time = s.end_time
         f2.request_expiration_time = s.request_expiration_time
         f2.group = s.group
-        f2.price = s.price
+        f2.price = s.price * (f2.end_time - f2.start_time).days/remainder
         f2.spot = s.spot
         f2.save()
+    #do price business
+
     s.delete()
     return redirect("index")
 
