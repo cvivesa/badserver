@@ -129,12 +129,38 @@ def future_transact(request, pk):
             return e("The Seller didn't Have A Qualifying Spot")
         f.buyer = a
 
-    f.spot = s
+    f.spot = s.spot
     f.save()
     f.buyer.balance -= f.price
     f.buyer.save()
     f.seller.balance += f.price
     f.seller.save()
+    #now modify s (the original future)
+    if s.start_time <= f.start_time:
+        f1 = Future()
+        f1.buyer = s.buyer
+        f1.seller = s.seller
+        f1.lot = s.lot
+        f1.start_time = s.start_time
+        f1.end_time = f.start_time
+        f1.request_expiration_time = s.request_expiration_time
+        f1.group = s.group
+        f1.price = s.price
+        f1.spot = s.spot
+        f1.save()
+    if s.end_time >= f.end_time:
+        f2 = Future()
+        f2.buyer = s.buyer
+        f2.seller = s.seller
+        f2.lot = s.lot
+        f2.start_time = f.end_time
+        f2.end_time = s.end_time
+        f2.request_expiration_time = s.request_expiration_time
+        f2.group = s.group
+        f2.price = s.price
+        f2.spot = s.spot
+        f2.save()
+    s.delete()
     return redirect("index")
 
 
@@ -165,6 +191,7 @@ class OptionCallCreate(LoginRequiredMixin, CreateView):
 
 class OptionPutCreate(LoginRequiredMixin, CreateView):
     model = Option
+    #owned = Future.filter()
     fields = [
         "lot",
         "start_time",
@@ -179,7 +206,6 @@ class OptionPutCreate(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.seller = self.request.user.a
         form.instance.creator = self.request.user.a
-
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -216,10 +242,10 @@ class AcceptedOptionList(FilteredSingleTableView):
     filter_class = AcceptedOptionFilter
 
     def get_queryset(self):
-        return Option.objects.filter(
-            creator=self.request.user.a,
+        return Option.objects.filter( (Q(buyer = self.request.user.a) | Q(seller = self.request.user.a))
+            ,buyer__isnull=False,seller__isnull = False,
             end_time__gte=timezone.now(),
-        )
+        ).exclude(creator=self.request.user.a)
 
 @login_required
 def option_transact(request, pk):
@@ -227,6 +253,7 @@ def option_transact(request, pk):
     # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
     f = get_object_or_404(Option, pk=pk)
+    #a is NOT the creator
     a = request.user.a
 
     if timezone.now() > f.request_expiration_time:
@@ -236,39 +263,46 @@ def option_transact(request, pk):
     if f.buyer and f.seller:
         return e("The Option was Already Accepted")
 
-    if a.net_balance() < f.collateral:
-            return e("You did not have enough funds to cover the collateral")
-
+    '''if a.net_balance() < f.collateral:
+            return e("You did not have enough funds to cover the collateral")'''
+    #call 
     if f.seller == None:
         if f.buyer.net_balance() < f.fee:
             return e("The Buyer didn't Have Enough Funds")
         
-        '''s = (
+        s = (
             Future.objects.filter(lot=f.lot)
             .owned_by(a, f.start_time, f.end_time)
             .first()
         )
         if not s:
-            return e("You didn't Have A Qualifying Spot")'''
+            return e("You didn't Have A Qualifying Spot")
         f.seller = a
+        f.seller.balance -= f.fee
+        f.seller.save()
+        f.buyer.save()
+        f.buyer.balance += f.fee
+        f.buyer.save()
+    #put
     else:
         if a.net_balance() < f.fee:
             return e("You didn't Have Enough Funds  to cover the fee")
-        '''s = (
+        s = (
             Future.objects.filter(lot=f.lot)
             .owned_by(f.seller, f.start_time, f.end_time)
             .first()
         )
         if not s:
-            return e("The Seller didn't Have A Qualifying Spot")'''
+            return e("The Seller didn't Have A Qualifying Spot")
         f.buyer = a
+        f.buyer.balance -= f.fee
+        f.buyer.save()
+        f.seller.balance += f.fee
+        f.seller.save()
 
-    #f.spot = s
+    f.spot = s.spot
     f.save()
-    f.buyer.balance -= f.fee
-    f.buyer.save()
-    f.seller.balance += f.fee
-    f.seller.save()
+    
     return redirect("index")
 
 @login_required
@@ -277,10 +311,19 @@ def option_exercise(request,pk):
     # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
     o = get_object_or_404(Option, pk=pk)
+    #a is NOT the creator
     a = request.user.a
-    if o.creator!=a:
-        return e("You cannot exercise the option if you did not issue it!")
-
+    #case for put
+    if o.creator == o.seller:
+        if a.net_balance() < o.price:
+            
+            return e("You do not have enough to pay to exercise the option")
+    #case for call
+    if o.creator == o.seller:
+        if o.seller.balance < o.price:
+            o.creator.balance -= o.collateral
+            a.balance += o.collateral
+            o.delete()
     f = Future()
 
     f.buyer = o.buyer
@@ -292,25 +335,50 @@ def option_exercise(request,pk):
     f.group = o.group
     f.price = o.price
     o.delete()
-
-    # if f.temp.net_balance() < f.price:
-        #TODO Colateral
-        # return e("You didn't Have Enough Funds")
     s = (
         Future.objects.filter(lot=f.lot)
         .owned_by(f.seller, f.start_time, f.end_time)
         .first()
     )
     if not s:
-        return e("The Seller didn't Have A Qualifying Spot")
+        o.creator.balance -= o.collateral
+        a.balance += o.collateral
+        o.delete()
+        f.delete()
+        return e("The seller did not have the future, you will be compensated in collateral")
 
-    f.spot = s
+    f.spot = s.spot
     f.save()
     f.buyer.balance -= f.price
     f.buyer.save()
     f.seller.balance += f.price
     f.seller.save()
-    
+    #now modify s (the original future)
+    if s.start_time < f.start_time:
+        f1 = Future()
+        f1.buyer = s.buyer
+        f1.seller = s.seller
+        f1.lot = s.lot
+        f1.start_time = s.start_time
+        f1.end_time = f.start_time
+        f1.request_expiration_time = s.request_expiration_time
+        f1.group = s.group
+        f1.price = s.price
+        f1.spot = s.spot
+        f1.save()
+    if s.end_time > f.end_time:
+        f2 = Future()
+        f2.buyer = s.buyer
+        f2.seller = s.seller
+        f2.lot = s.lot
+        f2.start_time = f.end_time
+        f2.end_time = s.end_time
+        f2.request_expiration_time = s.request_expiration_time
+        f2.group = s.group
+        f2.price = s.price
+        f2.spot = s.spot
+        f2.save()
+    s.delete()
     return redirect("index")
 
 
@@ -329,6 +397,15 @@ class UserUnfullfilledFutureList(FutureCallList):
         return Future.objects.filter(
             seller=None,
             buyer=self.request.user.a,
+            request_expiration_time__gte=timezone.now(),
+            # TODO spot__in=self.request.user.a.owned_spots.all(),
+        )
+class UserUnfullfilledOptionList(FutureCallList):
+    template_name = "lists/base.html"
+    table_class = UnfullFilledOptionTable
+    def get_queryset(self):
+        return Option.objects.filter(
+            (Q( buyer__isnull = True ) |Q(seller__isnull=True)),creator=self.request.user.a,
             request_expiration_time__gte=timezone.now(),
             # TODO spot__in=self.request.user.a.owned_spots.all(),
         )

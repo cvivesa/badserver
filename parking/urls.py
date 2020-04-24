@@ -29,6 +29,7 @@ urlpatterns = [
     path("accounts/spots", views.AccessibleSpotList.as_view(), name="accessible"),
     path("accounts/spots/pending", views.UserUnfullfilledFutureList.as_view(), name="pending"),
     path("accounts/options", views.AcceptedOptionList.as_view(), name="accepted_options"),
+    path("accounts/options/pending", views.UserUnfullfilledOptionList.as_view(), name="pending_options"),
 
     path("", include("django.contrib.auth.urls")),
     path("signup", views.SignUp.as_view(), name="sign_up"),
