@@ -199,6 +199,10 @@ td::after {
     display: none
 }
 
+.map {
+    flex: 1 1 0;
+}
+
 .map g path {
     stroke: var(--color8);
     stroke-width: 4;
