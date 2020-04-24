@@ -29,8 +29,7 @@ class EOSAccount(models.Model):
         t = timezone.now()
         options = Option.objects.filter(end_time__gt = t).filter(
             (Q(seller=self) & Q(buyer__isnull=False))
-            | (Q(buyer=self) & Q(seller__isnull=False))
-        ).exclude(creator=self)
+            | (Q(buyer=self) & Q(seller__isnull=False)),creator = self)
         s = options.aggregate(Sum("collateral")).get("collateral__sum",0)
         if s:
             return self.balance - s
@@ -104,8 +103,8 @@ class FutureQuerySet(models.QuerySet):
         )
 
         return self.filter(
-            start_time__lte=start,
-            end_time__gte=end,
+            start_time__gte=start,
+            end_time__lte=end,
             group__in=groups,
             seller__isnull=False,
             buyer__isnull=False,
@@ -163,6 +162,14 @@ class Option(models.Model):
         if self.buyer and self.seller:
             return reverse("option_exercise", args=[self.pk])
         return reverse("option_transact", args=[self.pk])
+    def calculate_null(self):
+        if not self.buyer:
+            return True
+        return False
+    def calculate_put(self):
+        if self.creator == self.seller:
+            return True
+        return False
 
 
 
