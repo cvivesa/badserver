@@ -8,3 +8,7 @@ def chart(title, url_name):
         'title': title,
         'url_name': url_name,
     }
+
+@register.inclusion_tag('tags/map.html')
+def map():
+    return {}

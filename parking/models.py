@@ -41,13 +41,16 @@ class Group(models.Model):
     creator = models.ForeignKey(
         EOSAccount, related_name="created_groups", on_delete=models.CASCADE
     )
-    members = models.ManyToManyField(EOSAccount, related_name="joined_groups")
+    members = models.ManyToManyField(EOSAccount, blank=True, related_name="joined_groups")
     fee = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_price = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_ratio = models.DecimalField(max_digits=3, decimal_places=2)
 
     def __str__(self):
         return self.name
+
+    def futures(self):
+        return Future.objects.filter(group=self, seller__isnull=False)
 
 
 class Lot(models.Model):

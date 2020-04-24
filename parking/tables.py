@@ -34,6 +34,8 @@ class OptionTable(tables.Table):
 
 
 class GroupTable(tables.Table):
+    name = tables.Column(linkify=("group_join", [tables.A("pk")]))
+
     class Meta:
         model = Group
         fields = ("name", "fee", "minimum_price", "minimum_ratio")

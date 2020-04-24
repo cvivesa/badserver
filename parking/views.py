@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.generic.edit import CreateView
 from django_tables2 import SingleTableView
@@ -32,6 +33,21 @@ class FilteredSingleTableView(LoginRequiredMixin, SingleTableView):
 def index(request):
     return render(request, "index.html", {})
 
+@login_required
+def profile(request):
+    if request.method == "POST":
+        future = get_object_or_404(Future, pk=request.POST['spot'])
+        group = get_object_or_404(Group, pk=request.POST['group'])
+        future.group = group
+        future.save()
+        return HttpResponseRedirect("profile")
+
+    context = {
+        "owned_groups": request.user.a.created_groups.all(),
+        "allocated_spots": Future.objects.filter(buyer=request.user.a, seller__isnull=False, group__isnull=False),
+        "unallocated_spots": Future.objects.filter(buyer=request.user.a, seller__isnull=False, group__isnull=True),
+    }
+    return render(request, "profile.html", context)
 
 class FutureCallCreate(LoginRequiredMixin, CreateView):
     model = Future
@@ -307,7 +323,7 @@ class GroupList(FilteredSingleTableView):
     filter_class = GroupFilter
 
     def get_queryset(self):
-        return Group.objects.exclude(creator=self.request.user.a)
+        return Group.objects.exclude(creator=self.request.user.a).exclude(id__in=self.request.user.a.joined_groups.all())
 
 
 @login_required
@@ -318,7 +334,7 @@ def group_join(request, pk):
 
     # TODO a person joining a group could make the minimums fail
 
-    if g.owner == a:
+    if g.creator == a:
         return e("You're Automatically In Your Own Group")
     if a.net_balance() < g.fee:
         return e("You Don't Have Enough (Un-Reserved) Funds")
@@ -326,8 +342,8 @@ def group_join(request, pk):
 
     a.balance -= g.fee
     a.save()
-    g.owner.balance += g.fee
-    g.owner.save()
+    g.creator.balance += g.fee
+    g.creator.save()
 
     g.members.add(a)
     return redirect("index")
