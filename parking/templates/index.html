@@ -3,12 +3,17 @@
 <h1>Futures</h1>
 <p><a href="{% url 'future_call_list' %}">Want to Sell?</a></p>
 <p><a href="{% url 'future_put_list' %}">Want to Buy?</a></p>
-<p><a href="{% url 'accessible' %}">Lookup What Spots You Can Use</a></p>
 <p><a href="{% url 'whitepages' %}">Lookup What Spots Someone Can Use</a></p>
 <hr>
 <h1>Options</h1>
 <p><a href="{% url 'option_call_list' %}">Want to Sell?</a></p>
 <p><a href="{% url 'option_put_list' %}">Want to Buy?</a></p>
+<hr>
+<h1>Account</h1>
+<p><a href="{% url 'accessible' %}">Lookup What Spots You Can Use</a></p>
+<p><a href="{% url 'accepted_options' %}">Exercise an Option</a></p>
+<p><a href="{% url 'pending_options' %}">Lookup unfulfilled Options</a></p>
+
 <hr>
 <h1>Groups</h1>
 <p><a href="{% url 'group_create' %}">Create a group</a></p>

@@ -25,10 +25,21 @@ class OptionFilter(FutureFilter):
             "start_time": ["lte"],
             "end_time": ["gte"],
             "request_expiration_time": ["lte"],
+            "price": ["lte","gte"],
             "fee": ["gte"],
             "collateral": ["gte"],
         }
 
+class AcceptedOptionFilter(FutureFilter):
+    class Meta(FutureFilter.Meta):
+        model = Option
+        fields = {
+            "lot": ["exact"],
+            #"start_time": ["lte"],
+            #"end_time": ["gte"],
+            #"price": ["lte","gte"]
+
+        }
 
 class SingleUserSpotFilter(filters.FilterSet):
     date_range = filters.DateTimeFromToRangeFilter(label="Date Range")
