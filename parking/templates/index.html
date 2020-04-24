@@ -4,20 +4,42 @@
 
 {% block content %}
 {% chart 'All Completed Futures' 'future_history' %}
+<head> 
+    <link rel="stylesheet" type="text/css" href="{% static 'index.css' %}">
+</head>
+
+
+
+<hr>
+<br>
+<div class = homepage>
+    <div class = homepage-1>
+        <h1>Futures</h1>
+        <p><a href="{% url 'future_call_list' %}">Want to Sell?</a></p>
+        <p><a href="{% url 'future_put_list' %}">Want to Buy?</a></p>
+    </div>
+
+    <div class = "homepage-2">
+        <h1>Lookup</h1>
+        <p><a href="{% url 'accessible' %}">Lookup What Spots You Can Use</a></p>
+        <p><a href="{% url 'whitepages' %}">Lookup What Spots Someone Can Use</a></p>
+    </div>
+   
+    <div class = "homepage-3">
+        <h1>Options</h1>
+        <p><a href="{% url 'option_call_list' %}">Want to Sell?</a></p>
+        <p><a href="{% url 'option_put_list' %}">Want to Buy?</a></p>
+    </div>
+
+
+    <div class = homepage-4>
+        <h1>Groups</h1>
+        <p><a href="{% url 'group_create' %}">Create a group</a></p>
+        <p><a href="{% url 'group_list' %}">Join a group</a></p>
+    </div>
+</div>
+
+<br>
+<br>
 <script src="{% static 'chartLoader.js' %}"></script>
-
-<h1>Futures</h1>
-<p><a href="{% url 'future_call_list' %}">Want to Sell?</a></p>
-<p><a href="{% url 'future_put_list' %}">Want to Buy?</a></p>
-<p><a href="{% url 'accessible' %}">Lookup What Spots You Can Use</a></p>
-<p><a href="{% url 'whitepages' %}">Lookup What Spots Someone Can Use</a></p>
-<hr>
-<h1>Options</h1>
-<p><a href="{% url 'option_call_list' %}">Want to Sell?</a></p>
-<p><a href="{% url 'option_put_list' %}">Want to Buy?</a></p>
-<hr>
-<h1>Groups</h1>
-<p><a href="{% url 'group_create' %}">Create a group</a></p>
-<p><a href="{% url 'group_list' %}">Join a group</a></p>
-
 {% endblock %}
