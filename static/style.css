@@ -46,19 +46,20 @@ body > nav {
     align-items: center;
     display: flex;
     background-color: var(--color2);
+    color: var(--background);
     padding: 0em 0.8em
 }
 
-body > nav a#brand {
+body > nav a {
     color: var(--background);
+}
+
+body > nav a#brand {
     font-size: x-large;
+    text-decoration: none;
 }
 
-body > nav a#user {
-    color: var(--color8);
-}
-
-a {
+.content a {
     color: var(--color6);
     text-decoration: none;
 }

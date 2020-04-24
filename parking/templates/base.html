@@ -15,7 +15,7 @@
     <nav>
         <h1><a id="brand" href="{% url 'index' %}">ParC</a></h1>
         {% if user.is_authenticated %}
-        <a id="user" href="{% url 'logout' %}">{{ user.username }}</a>
+        <p><a id="user" href="{% url 'logout' %}">{{ user.username }}</a>/{{ user.a.net_balance }}</p>
         {% endif %}
     </nav>
     <div class="content">
