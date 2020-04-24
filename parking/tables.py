@@ -15,6 +15,7 @@ class AcceptedFutureTable(tables.Table):
     class Meta:
         model = Future
         fields = ("spot", "start_time", "end_time")
+        empty_text = "Must give date range to show data."
 
 
 class OptionTable(tables.Table):

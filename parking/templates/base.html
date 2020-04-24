@@ -12,16 +12,62 @@
     <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/moment.min.js"></script>
 </head>
 
-<body>
-    <a href="{% url 'index' %}">The Blockchain for Allocation and Decentralization Group</a>
-    {% if user.is_authenticated %}
-    <p>Welcome, {{ user.username }}. Thanks for logging in.</p>
-    <p>Your current net balance is {{ user.a.net_balance }}.</p>
-    <p> Your current collateral is <b style = "color:red">{{ user.a.collateral }}</b>.</p>
-    <a href="{% url 'logout' %}">Logout</a>
-    {% endif %}
-    <hr>
-    {% block content %}{% endblock %}
+<body>    
+    
+    <div class="header-section">
+        <div class="header-section-1">
+            <h1><a href="{% url 'index' %}">Blockchain for Allocation and Decentralization</a></h1>
+        </div>
+     
+        <div class="header-section-2">
+            <nav></nav>
+        </div>
+        
+        <div class="header-section-3">
+            {% if user.is_authenticated %}
+            <!--p>{{ user.username }}</p> 
+            <a href="{% url 'logout' %}">Logout</a-->
+               
+            
+            <div class="dropdown">
+                <button onclick="dropdownbutton()" class="dropbtn">{{ user.username }}</button>
+                <div id="myDropdown" class="dropdown-content">
+                <a href="{% url 'accessible' %}">My Profile</a>
+                <a href="{% url 'logout' %}">Logout</a>
+                </div>
+            </div>
+                
+            <script>
+            /* When the user clicks on the button, 
+            toggle between hiding and showing the dropdown content */
+            function dropdownbutton() {
+                document.getElementById("myDropdown").classList.toggle("show");
+            }
+               
+            // Close the dropdown if the user clicks outside of it
+            window.onclick = function(event) {
+                if (!event.target.matches('.dropbtn')) {
+                    var dropdowns = document.getElementsByClassName("dropdown-content");
+                    var i;
+                    for (i = 0; i < dropdowns.length; i++) {
+                        var openDropdown = dropdowns[i];
+                        if (openDropdown.classList.contains('show')) {
+                            openDropdown.classList.remove('show');
+                        }
+                   }
+                }
+            }
+            </script>
+            {% endif %}   
+            
+        </div>
+    </div>
+    
+    <div class="pagebody">
+        
+        {% block content %}{% endblock %}
+    </div>
 </body>
 
+<!--nav user.a.net_balance -->
 </html>
