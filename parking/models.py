@@ -21,7 +21,7 @@ class EOSAccount(models.Model):
     # Should add any new manually entered fields to REQUIRED_FIELDS
 
     #  find out precision and decide on default
-    balance = models.DecimalField(default=1000.0, max_digits=20, decimal_places=10)
+    balance = models.DecimalField(default=1000.0, max_digits=10, decimal_places=2)
 
     def __str__(self):
         return str(self.user)
@@ -56,8 +56,8 @@ class Group(models.Model):
     members = models.ManyToManyField(
         EOSAccount, blank=True, related_name="joined_groups"
     )
-    fee = models.DecimalField(max_digits=20, decimal_places=10)
-    minimum_price = models.DecimalField(max_digits=20, decimal_places=10)
+    fee = models.DecimalField(max_digits=10, decimal_places=2)
+    minimum_price = models.DecimalField(max_digits=10, decimal_places=2)
     minimum_ratio = models.DecimalField(max_digits=3, decimal_places=2)
 
     def __str__(self):
@@ -124,7 +124,7 @@ class Future(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(blank=True)
     request_expiration_time = models.DateTimeField()
-    price = models.DecimalField(max_digits=20, decimal_places=10)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     group = models.ForeignKey(
         Group, related_name="+", null=True, blank=True, on_delete=models.CASCADE
     )
@@ -148,12 +148,12 @@ class Option(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(blank=True)
     request_expiration_time = models.DateTimeField()
-    price = models.DecimalField(max_digits=20, decimal_places=10)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
     group = models.ForeignKey(
         Group, related_name="+", null=True, blank=True, on_delete=models.CASCADE
     )
-    fee = models.DecimalField(max_digits=20, decimal_places=10)
-    collateral = models.DecimalField(max_digits=20, decimal_places=10)
+    fee = models.DecimalField(max_digits=10, decimal_places=2)
+    collateral = models.DecimalField(max_digits=10, decimal_places=2)
     creator = models.ForeignKey(
         EOSAccount, related_name="+", null=True, blank=True, on_delete=models.CASCADE
     )

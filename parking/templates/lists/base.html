@@ -4,8 +4,10 @@
 {% load static %}
 
 {% block content %}
+<div class="svg-container">
 {% map %}
 {% chart 'All Futures' 'future_history' %}
+</div>
 {% block header %}
 {% endblock %}
 <div><form method='GET'>

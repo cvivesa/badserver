@@ -45,10 +45,10 @@ const hoverHandler = e => {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // fetch(document.querySelector('.ct-chart').getAttribute("url-path"))
-    //     .then(res => res.ok ? res.json() : Promise.reject(res.status))
-    //     .then(data => instantiateChart(data))
-    //     .catch(error => console.error(error));
+    fetch(document.querySelector('.ct-chart').getAttribute("url-path"))
+        .then(res => res.ok ? res.json() : Promise.reject(res.status))
+        .then(data => instantiateChart(data))
+        .catch(error => console.error(error));
 
     document.querySelectorAll('tbody tr')
         .forEach(el => el.addEventListener('mouseover', hoverHandler));
