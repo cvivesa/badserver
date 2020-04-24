@@ -1,13 +1,7 @@
 {% extends "base.html" %}
 {% load django_tables2 %}
-{% load parking_tags %}
-{% load static %}
 
 {% block content %}
-<div class="svg-container">
-{% map %}
-{% chart 'All Futures' 'future_history' %}
-</div>
 {% block header %}
 {% endblock %}
 <div><form method='GET'>
@@ -21,5 +15,4 @@
     </p>
 </form></div>
 {% render_table table %}
-<script src="{% static 'chartLoader.js' %}"></script>
 {% endblock %}

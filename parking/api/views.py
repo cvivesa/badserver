@@ -53,7 +53,7 @@ class OptionAPIView(APIView):
 
         payload = [
             [(start, float(price) / (end - start).days) for (price, start, end) in l]
-            for l in (futures_complete, futures_incomplete)
+            for l in (futures_complete, options_complete)
         ]
 
         return Response(payload)
