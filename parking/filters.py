@@ -25,8 +25,20 @@ class OptionFilter(FutureFilter):
             "start_time": ["lte"],
             "end_time": ["gte"],
             "request_expiration_time": ["lte"],
+            "price": ["lte", "gte"],
             "fee": ["gte"],
             "collateral": ["gte"],
+        }
+
+
+class AcceptedOptionFilter(FutureFilter):
+    class Meta(FutureFilter.Meta):
+        model = Option
+        fields = {
+            "lot": ["exact"],
+            # "start_time": ["lte"],
+            # "end_time": ["gte"],
+            # "price": ["lte","gte"]
         }
 
 
@@ -44,9 +56,7 @@ class SingleUserSpotFilter(filters.FilterSet):
     def filter_queryset(self, queryset):
         dates = self.form.cleaned_data.get("date_range", None)
         if dates:
-            return queryset.owned_by(self.a, dates.start, dates.stop).union(
-                queryset.owned_by_groups(self.a, dates.start, dates.stop)
-            )
+            return queryset.accessible(self.a, dates.start, dates.stop)
         return Future.objects.none()
 
 
@@ -62,9 +72,7 @@ class MultipleUserSpotFilter(filters.FilterSet):
         a = self.form.cleaned_data.get("user", None)
         dates = self.form.cleaned_data.get("date_range", None)
         if a and dates:
-            return queryset.owned_by(a, dates.start, dates.stop).union(
-                queryset.owned_by_groups(a, dates.start, dates.stop)
-            )
+            return queryset.accessible(a, dates.start, dates.stop)
         return Future.objects.none()
 
 

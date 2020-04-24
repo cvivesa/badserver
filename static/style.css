@@ -264,7 +264,31 @@ td::after {
     stroke: var(--foreground);
 }
 
-.ct-chart .ct-series-a .ct-line,
+.ct-chart .ct-series-a .ct-line {
+    stroke: var(--color2);
+}
+
 .ct-chart .ct-series-a .ct-point {
-    stroke: var(--color1);
+    display: none;
+}
+
+.ct-chart .ct-series-b .ct-point {
+    stroke: var(--color4);
+}
+
+.ct-chart .ct-series-b .ct-line {
+    display: none
+}
+
+.map g path {
+    stroke: var(--color8);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.map > path {
+    fill: var(--color1);
+    fill-opacity: 1;
+    display: none;
 }

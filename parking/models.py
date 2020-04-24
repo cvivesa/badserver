@@ -1,9 +1,10 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
+from django.utils import timezone
 
 
 class EOSAccount(models.Model):
@@ -21,19 +22,30 @@ class EOSAccount(models.Model):
 
     #  find out precision and decide on default
     balance = models.DecimalField(default=1000.0, max_digits=20, decimal_places=10)
-    minimum_balance = models.DecimalField(default=0.0, max_digits=20, decimal_places=10)
 
     def __str__(self):
         return str(self.user)
 
     def net_balance(self):
-        return self.balance - self.minimum_balance
+        t = timezone.now()
+        options = Option.objects.filter(end_time__gt=t).filter(
+            (Q(seller=self) & Q(buyer__isnull=False))
+            | (Q(buyer=self) & Q(seller__isnull=False)),
+            creator=self,
+        )
+        s = options.aggregate(Sum("collateral")).get("collateral__sum", 0)
+        if s:
+            return self.balance - s
+        return self.balance
+
+    def collateral(self):
+        return self.balance - self.net_balance()
 
     def owns(self, spot, start, end):
-        return Future.objects.filter(spot=spot).owned_by(self, start, end).exists()
+        return Future.objects.filter(spot=spot).owned_by_self(self, start, end).exists()
 
     def owns(self, start, end):
-        return Future.objects.owned_by(self, start, end).values_list("spot", flat=True)
+        return Future.objects.owned_by_self(self, start, end).values_list("spot", flat=True)
 
 
 class Group(models.Model):
@@ -41,13 +53,18 @@ class Group(models.Model):
     creator = models.ForeignKey(
         EOSAccount, related_name="created_groups", on_delete=models.CASCADE
     )
-    members = models.ManyToManyField(EOSAccount, related_name="joined_groups")
+    members = models.ManyToManyField(
+        EOSAccount, blank=True, related_name="joined_groups"
+    )
     fee = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_price = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_ratio = models.DecimalField(max_digits=3, decimal_places=2)
 
     def __str__(self):
         return self.name
+
+    def futures(self):
+        return Future.objects.filter(group=self, seller__isnull=False)
 
 
 class Lot(models.Model):
@@ -72,26 +89,14 @@ class Spot(models.Model):
 #  two back-to-back purchases that combined cover the range
 #  selling a spot and buying it back
 class FutureQuerySet(models.QuerySet):
-    def owned_by(self, a, start, end):
-        sales = self.filter(seller=a, buyer__isnull=False).filter(
-            Q(start_time__gte=start, start_time__lte=end)
-            | Q(end_time__gte=start, end_time__lte=end)
-            | Q(start_time__lte=start, end_time__gte=end),
-        )
-
+    def owned_by_self(self, a, start, end):
         return self.filter(
             start_time__lte=start, end_time__gte=end, buyer=a, seller__isnull=False,
-        ).exclude(id__in=sales)
+        )
 
     def owned_by_groups(self, a, start, end):
         groups = a.joined_groups.all()
         owners = groups.values_list("creator", flat=True)
-
-        sales = self.filter(seller__in=owners, buyer__isnull=False).filter(
-            Q(start_time__gte=start, start_time__lte=end)
-            | Q(end_time__gte=start, end_time__lte=end)
-            | Q(start_time__lte=start, end_time__gte=end),
-        )
 
         return self.filter(
             start_time__lte=start,
@@ -99,7 +104,12 @@ class FutureQuerySet(models.QuerySet):
             group__in=groups,
             seller__isnull=False,
             buyer__isnull=False,
-        ).exclude(id__in=sales)
+        )
+
+    def accessible(self, a, start, end):
+        return queryset.owned_by_self(a, start, end).union(
+            queryset.owned_by_groups(a, start, end)
+        )
 
 
 class Future(models.Model):
@@ -126,14 +136,40 @@ class Future(models.Model):
         return reverse("future_transact", args=[self.pk])
 
 
-class Option(Future):
+class Option(models.Model):
+    buyer = models.ForeignKey(
+        EOSAccount, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
+    seller = models.ForeignKey(
+        EOSAccount, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
+    lot = models.ForeignKey(Lot, on_delete=models.CASCADE)
+    spot = models.ForeignKey(Spot, null=True, blank=True, on_delete=models.CASCADE)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField(blank=True)
+    request_expiration_time = models.DateTimeField()
+    price = models.DecimalField(max_digits=20, decimal_places=10)
+    group = models.ForeignKey(
+        Group, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
     fee = models.DecimalField(max_digits=20, decimal_places=10)
     collateral = models.DecimalField(max_digits=20, decimal_places=10)
+    creator = models.ForeignKey(
+        EOSAccount, related_name="+", null=True, blank=True, on_delete=models.CASCADE
+    )
     # option is valid until Future.request_expiration_time
 
     def get_absolute_url(self):
-        # TODO account for different link for purchases to specify group
+        if self.buyer and self.seller:
+            return reverse("option_exercise", args=[self.pk])
         return reverse("option_transact", args=[self.pk])
+
+    def calculate_null(self):
+        return not self.buyer
+
+    def calculate_put(self):
+        return self.creator == self.seller
+
 
 
 @receiver(post_save, sender=User, dispatch_uid="create_user_eos_account")

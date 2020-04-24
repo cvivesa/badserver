@@ -1,7 +1,4 @@
 {% extends "base.html" %}
-{% load parking_tags %}
-{% load static %}
-
 {% block content %}
 {% chart 'All Completed Futures' 'future_history' %}
 <head> 
@@ -37,6 +34,13 @@
         <p><a href="{% url 'group_create' %}">Create a group</a></p>
         <p><a href="{% url 'group_list' %}">Join a group</a></p>
     </div>
+  
+<p><a href="{% url 'accepted_options' %}">Exercise an Option</a></p>
+<p><a href="{% url 'pending_options' %}">Lookup unfulfilled Options</a></p>
+ 
+<p><a href="{% url 'group_create' %}">Create a group</a></p>
+<p><a href="{% url 'group_list' %}">Join a group</a></p>
+<p><a href="{% url 'profile' %}">Allocate spots to a group</a></p>
 </div>
 
 <br>
