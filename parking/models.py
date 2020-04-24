@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
+
 class EOSAccount(models.Model):
     user = models.OneToOneField(User, related_name="a", on_delete=models.CASCADE)
 
@@ -27,10 +28,12 @@ class EOSAccount(models.Model):
 
     def net_balance(self):
         t = timezone.now()
-        options = Option.objects.filter(end_time__gt = t).filter(
+        options = Option.objects.filter(end_time__gt=t).filter(
             (Q(seller=self) & Q(buyer__isnull=False))
-            | (Q(buyer=self) & Q(seller__isnull=False)),creator = self)
-        s = options.aggregate(Sum("collateral")).get("collateral__sum",0)
+            | (Q(buyer=self) & Q(seller__isnull=False)),
+            creator=self,
+        )
+        s = options.aggregate(Sum("collateral")).get("collateral__sum", 0)
         if s:
             return self.balance - s
         return self.balance
@@ -39,10 +42,10 @@ class EOSAccount(models.Model):
         return self.balance - self.net_balance()
 
     def owns(self, spot, start, end):
-        return Future.objects.filter(spot=spot).owned_by(self, start, end).exists()
+        return Future.objects.filter(spot=spot).owned_by_self(self, start, end).exists()
 
     def owns(self, start, end):
-        return Future.objects.owned_by(self, start, end).values_list("spot", flat=True)
+        return Future.objects.owned_by_self(self, start, end).values_list("spot", flat=True)
 
 
 class Group(models.Model):
@@ -50,7 +53,9 @@ class Group(models.Model):
     creator = models.ForeignKey(
         EOSAccount, related_name="created_groups", on_delete=models.CASCADE
     )
-    members = models.ManyToManyField(EOSAccount, blank=True, related_name="joined_groups")
+    members = models.ManyToManyField(
+        EOSAccount, blank=True, related_name="joined_groups"
+    )
     fee = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_price = models.DecimalField(max_digits=20, decimal_places=10)
     minimum_ratio = models.DecimalField(max_digits=3, decimal_places=2)
@@ -84,34 +89,27 @@ class Spot(models.Model):
 #  two back-to-back purchases that combined cover the range
 #  selling a spot and buying it back
 class FutureQuerySet(models.QuerySet):
-    def owned_by(self, a, start, end):
-        sales = self.filter(seller=a, buyer__isnull=False).filter(
-            Q(start_time__gte=start, start_time__lte=end)
-            | Q(end_time__gte=start, end_time__lte=end)
-            | Q(start_time__lte=start, end_time__gte=end),
-        )
-
+    def owned_by_self(self, a, start, end):
         return self.filter(
             start_time__lte=start, end_time__gte=end, buyer=a, seller__isnull=False,
-        ).exclude(id__in=sales)
+        )
 
     def owned_by_groups(self, a, start, end):
         groups = a.joined_groups.all()
         owners = groups.values_list("creator", flat=True)
 
-        sales = self.filter(seller__in=owners, buyer__isnull=False).filter(
-            Q(start_time__gte=start, start_time__lte=end)
-            | Q(end_time__gte=start, end_time__lte=end)
-            | Q(start_time__lte=start, end_time__gte=end),
-        )
-
         return self.filter(
-            start_time__gte=start,
-            end_time__lte=end,
+            start_time__lte=start,
+            end_time__gte=end,
             group__in=groups,
             seller__isnull=False,
             buyer__isnull=False,
-        ).exclude(id__in=sales)
+        )
+
+    def accessible(self, a, start, end):
+        return queryset.owned_by_self(a, start, end).union(
+            queryset.owned_by_groups(a, start, end)
+        )
 
 
 class Future(models.Model):
@@ -165,15 +163,12 @@ class Option(models.Model):
         if self.buyer and self.seller:
             return reverse("option_exercise", args=[self.pk])
         return reverse("option_transact", args=[self.pk])
-    def calculate_null(self):
-        if not self.buyer:
-            return True
-        return False
-    def calculate_put(self):
-        if self.creator == self.seller:
-            return True
-        return False
 
+    def calculate_null(self):
+        return not self.buyer
+
+    def calculate_put(self):
+        return self.creator == self.seller
 
 
 

@@ -34,21 +34,27 @@ class FilteredSingleTableView(LoginRequiredMixin, SingleTableView):
 def index(request):
     return render(request, "index.html", {})
 
+
 @login_required
 def profile(request):
     if request.method == "POST":
-        future = get_object_or_404(Future, pk=request.POST['spot'])
-        group = get_object_or_404(Group, pk=request.POST['group'])
+        future = get_object_or_404(Future, pk=request.POST["spot"])
+        group = get_object_or_404(Group, pk=request.POST["group"])
         future.group = group
         future.save()
         return HttpResponseRedirect("profile")
 
     context = {
         "owned_groups": request.user.a.created_groups.all(),
-        "allocated_spots": Future.objects.filter(buyer=request.user.a, seller__isnull=False, group__isnull=False),
-        "unallocated_spots": Future.objects.filter(buyer=request.user.a, seller__isnull=False, group__isnull=True),
+        "allocated_spots": Future.objects.filter(
+            buyer=request.user.a, seller__isnull=False, group__isnull=False
+        ),
+        "unallocated_spots": Future.objects.filter(
+            buyer=request.user.a, seller__isnull=False, group__isnull=True
+        ),
     }
     return render(request, "profile.html", context)
+
 
 class FutureCallCreate(LoginRequiredMixin, CreateView):
     model = Future
@@ -127,7 +133,7 @@ def future_transact(request, pk):
             return e("The Buyer didn't Have Enough Funds")
         s = (
             Future.objects.filter(lot=f.lot)
-            .owned_by(a, f.start_time, f.end_time)
+            .owned_by_self(a, f.start_time, f.end_time)
             .first()
         )
         if not s:
@@ -138,7 +144,7 @@ def future_transact(request, pk):
             return e("You didn't Have Enough Funds")
         s = (
             Future.objects.filter(lot=f.lot)
-            .owned_by(f.seller, f.start_time, f.end_time)
+            .owned_by_self(f.seller, f.start_time, f.end_time)
             .first()
         )
         if not s:
@@ -152,10 +158,7 @@ def future_transact(request, pk):
     f.seller.balance += f.price
     f.seller.save()
     remainder = (s.end_time - s.start_time).days
-    #now modify s (the original future)
-    if s.start_time == f.start_time and s.end_time == f.end_time:
-        s.delete()
-        return redirect("index")
+    # now modify s (the original future)
     if s.start_time < f.start_time:
         f1 = Future()
         f1.buyer = s.buyer
@@ -165,11 +168,11 @@ def future_transact(request, pk):
         f1.end_time = f.start_time
         f1.request_expiration_time = s.request_expiration_time
         f1.group = s.group
-        #set the price to the day/price ratio
-        f1.price = s.price * (f1.end_time - f1.start_time).days/remainder
+        # set the price to the day/price ratio
+        f1.price = s.price * (f1.end_time - f1.start_time).days / remainder
         f1.spot = s.spot
         f1.save()
-    if s.end_time > f.end_time:
+    elif s.end_time > f.end_time:
         f2 = Future()
         f2.buyer = s.buyer
         f2.seller = s.seller
@@ -178,7 +181,7 @@ def future_transact(request, pk):
         f2.end_time = s.end_time
         f2.request_expiration_time = s.request_expiration_time
         f2.group = s.group
-        f2.price = s.price * (f2.end_time - f2.start_time).days/remainder
+        f2.price = s.price * (f2.end_time - f2.start_time).days / remainder
         f2.spot = s.spot
         f2.save()
     s.delete()
@@ -212,7 +215,6 @@ class OptionCallCreate(LoginRequiredMixin, CreateView):
 
 class OptionPutCreate(LoginRequiredMixin, CreateView):
     model = Option
-    #owned = Future.filter()
     fields = [
         "lot",
         "start_time",
@@ -257,16 +259,20 @@ class OptionPutList(OptionCallList):
             buyer=None, request_expiration_time__gte=timezone.now(),
         )  # .exclude(spot__in=self.request.user.a.owned_spots.all())
 
+
 class AcceptedOptionList(FilteredSingleTableView):
     table_class = AcceptedOptionTable
     template_name = "lists/base.html"
     filter_class = AcceptedOptionFilter
 
     def get_queryset(self):
-        return Option.objects.filter( (Q(buyer = self.request.user.a) | Q(seller = self.request.user.a))
-            ,buyer__isnull=False,seller__isnull = False,
+        return Option.objects.filter(
+            (Q(buyer=self.request.user.a) | Q(seller=self.request.user.a)),
+            buyer__isnull=False,
+            seller__isnull=False,
             end_time__gte=timezone.now(),
         ).exclude(creator=self.request.user.a)
+
 
 @login_required
 def option_transact(request, pk):
@@ -274,7 +280,7 @@ def option_transact(request, pk):
     # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
     f = get_object_or_404(Option, pk=pk)
-    #a is NOT the creator
+    # a is NOT the creator
     a = request.user.a
 
     if timezone.now() > f.request_expiration_time:
@@ -284,16 +290,16 @@ def option_transact(request, pk):
     if f.buyer and f.seller:
         return e("The Option was Already Accepted")
 
-    '''if a.net_balance() < f.collateral:
-            return e("You did not have enough funds to cover the collateral")'''
-    #call 
+    """if a.net_balance() < f.collateral:
+            return e("You did not have enough funds to cover the collateral")"""
+    # call
     if f.seller == None:
         if f.buyer.net_balance() < f.fee:
             return e("The Buyer didn't Have Enough Funds")
-        
+
         s = (
             Future.objects.filter(lot=f.lot)
-            .owned_by(a, f.start_time, f.end_time)
+            .owned_by_self(a, f.start_time, f.end_time)
             .first()
         )
         if not s:
@@ -304,13 +310,13 @@ def option_transact(request, pk):
         f.buyer.save()
         f.buyer.balance += f.fee
         f.buyer.save()
-    #put
+    # put
     else:
         if a.net_balance() < f.fee:
             return e("You didn't Have Enough Funds  to cover the fee")
         s = (
             Future.objects.filter(lot=f.lot)
-            .owned_by(f.seller, f.start_time, f.end_time)
+            .owned_by_self(f.seller, f.start_time, f.end_time)
             .first()
         )
         if not s:
@@ -323,23 +329,24 @@ def option_transact(request, pk):
 
     f.spot = s.spot
     f.save()
-    
+
     return redirect("index")
 
+
 @login_required
-def option_exercise(request,pk):
+def option_exercise(request, pk):
     # TODO consider groups
     # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
     o = get_object_or_404(Option, pk=pk)
-    #a is NOT the creator
+    # a is NOT the creator
     a = request.user.a
-    #case for put
+    # case for put
     if o.creator == o.seller:
         if a.net_balance() < o.price:
-            
+
             return e("You do not have enough to pay to exercise the option")
-    #case for call
+    # case for call
     if o.creator == o.seller:
         if o.seller.balance < o.price:
             o.creator.balance -= o.collateral
@@ -358,7 +365,7 @@ def option_exercise(request,pk):
     o.delete()
     s = (
         Future.objects.filter(lot=f.lot)
-        .owned_by(f.seller, f.start_time, f.end_time)
+        .owned_by_self(f.seller, f.start_time, f.end_time)
         .first()
     )
     if not s:
@@ -366,7 +373,9 @@ def option_exercise(request,pk):
         a.balance += o.collateral
         o.delete()
         f.delete()
-        return e("The seller did not have the future, you will be compensated in collateral")
+        return e(
+            "The seller did not have the future, you will be compensated in collateral"
+        )
 
     f.spot = s.spot
     f.save()
@@ -374,7 +383,7 @@ def option_exercise(request,pk):
     f.buyer.save()
     f.seller.balance += f.price
     f.seller.save()
-    #now modify s (the original future)
+    # now modify s (the original future)
     if s.start_time == f.start_time and s.end_time == f.end_time:
         s.delete()
         return redirect("index")
@@ -388,7 +397,7 @@ def option_exercise(request,pk):
         f1.end_time = f.start_time
         f1.request_expiration_time = s.request_expiration_time
         f1.group = s.group
-        f1.price = s.price * (f1.end_time - f1.start_time).days/remainder
+        f1.price = s.price * (f1.end_time - f1.start_time).days / remainder
         f1.spot = s.spot
         f1.save()
     if s.end_time > f.end_time:
@@ -400,14 +409,13 @@ def option_exercise(request,pk):
         f2.end_time = s.end_time
         f2.request_expiration_time = s.request_expiration_time
         f2.group = s.group
-        f2.price = s.price * (f2.end_time - f2.start_time).days/remainder
+        f2.price = s.price * (f2.end_time - f2.start_time).days / remainder
         f2.spot = s.spot
         f2.save()
-    #do price business
+    # do price business
 
     s.delete()
     return redirect("index")
-
 
 
 class AccessibleSpotList(FilteredSingleTableView):
@@ -427,12 +435,16 @@ class UserUnfullfilledFutureList(FutureCallList):
             request_expiration_time__gte=timezone.now(),
             # TODO spot__in=self.request.user.a.owned_spots.all(),
         )
+
+
 class UserUnfullfilledOptionList(FutureCallList):
     template_name = "lists/base.html"
     table_class = UnfullFilledOptionTable
+
     def get_queryset(self):
         return Option.objects.filter(
-            (Q( buyer__isnull = True ) |Q(seller__isnull=True)),creator=self.request.user.a,
+            (Q(buyer__isnull=True) | Q(seller__isnull=True)),
+            creator=self.request.user.a,
             request_expiration_time__gte=timezone.now(),
             # TODO spot__in=self.request.user.a.owned_spots.all(),
         )
@@ -463,7 +475,9 @@ class GroupList(FilteredSingleTableView):
     filter_class = GroupFilter
 
     def get_queryset(self):
-        return Group.objects.exclude(creator=self.request.user.a).exclude(id__in=self.request.user.a.joined_groups.all())
+        return Group.objects.exclude(creator=self.request.user.a).exclude(
+            id__in=self.request.user.a.joined_groups.all()
+        )
 
 
 @login_required

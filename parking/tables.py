@@ -14,7 +14,7 @@ class FutureTable(tables.Table):
 class AcceptedFutureTable(tables.Table):
     class Meta:
         model = Future
-        fields = ("spot","start_time", "end_time")
+        fields = ("spot", "start_time", "end_time")
 
 
 class OptionTable(tables.Table):
@@ -32,9 +32,13 @@ class OptionTable(tables.Table):
             "collateral",
         )
 
+
 class AcceptedOptionTable(tables.Table):
     lot = tables.Column(linkify=True)
-    put = tables.BooleanColumn(accessor = tables.utils.A("calculate_put"),orderable = False)
+    put = tables.BooleanColumn(
+        accessor=tables.utils.A("calculate_put"), orderable=False
+    )
+
     class Meta:
         model = Option
         fields = (
@@ -43,8 +47,10 @@ class AcceptedOptionTable(tables.Table):
             "end_time",
             "price",
             "put"
-            #TODO Add way to find market value of spot (average of 3 last spots sold)
+            # TODO Add way to find market value of spot (average of 3 last spots sold)
         )
+
+
 class GroupTable(tables.Table):
     name = tables.Column(linkify=("group_join", [tables.A("pk")]))
 
@@ -52,19 +58,13 @@ class GroupTable(tables.Table):
         model = Group
         fields = ("name", "fee", "minimum_price", "minimum_ratio")
 
+
 class UnfullFilledOptionTable(tables.Table):
-    #put = tables.BooleanColumn(tables.utils.A("buyer__isnull"))
-    put = tables.BooleanColumn(accessor = tables.utils.A("calculate_null"),orderable = False)
-    '''def render_put(self,record):
-        if record.buyer__isnull:
-            return False
-        return True'''
+    # put = tables.BooleanColumn(tables.utils.A("buyer__isnull"))
+    put = tables.BooleanColumn(
+        accessor=tables.utils.A("calculate_null"), orderable=False
+    )
+    
     class Meta:
         model = Option
-        fields = (
-            "lot",
-            "start_time",
-            "end_time",
-            "price",
-            "put"
-        )
+        fields = ("lot", "start_time", "end_time", "price", "put")
