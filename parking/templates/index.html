@@ -1,11 +1,5 @@
 {% extends "base.html" %}
-{% load parking_tags %}
-{% load static %}
-
 {% block content %}
-{% chart 'All Completed Futures' 'future_history' %}
-<script src="{% static 'chartLoader.js' %}"></script>
-
 <h1>Futures</h1>
 <p><a href="{% url 'future_call_list' %}">Want to Sell?</a></p>
 <p><a href="{% url 'future_put_list' %}">Want to Buy?</a></p>
@@ -24,5 +18,4 @@
 <h1>Groups</h1>
 <p><a href="{% url 'group_create' %}">Create a group</a></p>
 <p><a href="{% url 'group_list' %}">Join a group</a></p>
-
 {% endblock %}

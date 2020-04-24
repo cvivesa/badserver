@@ -5,6 +5,7 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("profile", views.profile, name="profile"),
     path("futures/calls", views.FutureCallList.as_view(), name="future_call_list"),
     path(
         "futures/calls/new", views.FutureCallCreate.as_view(), name="future_call_create"
@@ -24,13 +25,11 @@ urlpatterns = [
     path("spots/lookup", views.Whitepages.as_view(), name="whitepages"),
     path("groups/create", views.GroupCreate.as_view(), name="group_create"),
     path("groups/list", views.GroupList.as_view(), name="group_list"),
-
-
+    path("groups/join/<int:pk>", views.group_join, name="group_join"),
     path("accounts/spots", views.AccessibleSpotList.as_view(), name="accessible"),
     path("accounts/spots/pending", views.UserUnfullfilledFutureList.as_view(), name="pending"),
     path("accounts/options", views.AcceptedOptionList.as_view(), name="accepted_options"),
     path("accounts/options/pending", views.UserUnfullfilledOptionList.as_view(), name="pending_options"),
-
     path("", include("django.contrib.auth.urls")),
     path("signup", views.SignUp.as_view(), name="sign_up"),
 ]

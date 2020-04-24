@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load parking_tags %}
+{% load static %}
+
+{% block content %}
+
+{% if owned_groups %}
+<h1>Your Owned Groups</h1>
+    <ul>
+    {% for g in owned_groups %}
+        <h1>{{ g }}</li>
+        {% if g.futures %}
+        <ul>
+            {% for s in g.futures %}
+                <li>{{ s.spot}}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if unallocated_spots %}
+        <form method="POST">
+            {% csrf_token %}
+            <select id="spot">
+            {% for s in unallocated_spots %}
+                <option value="{{ s.id}}">{{ s.spot }}</option>
+            {% endfor %}
+            </select>
+            <input type="hidden" id="group" value="{{ g.id }}" />
+            <input type='submit' value='Allocate' />
+        </form>
+        {% endif %}
+    {% endfor %}
+    </ul>
+{% else %}
+<h1>Your Don't Own any Groups</h1>
+{% endif %}
+
+{% endblock %}
+

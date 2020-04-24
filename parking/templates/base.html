@@ -2,7 +2,6 @@
 <html lang="en-US">
 {% load static %}
 <head>
-
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>BAD</title>
@@ -19,7 +18,6 @@
     <p>Welcome, {{ user.username }}. Thanks for logging in.</p>
     <p>Your current net balance is {{ user.a.net_balance }}.</p>
     <p> Your current collateral is <b style = "color:red">{{ user.a.collateral }}</b>.</p>
-
     <a href="{% url 'logout' %}">Logout</a>
     {% endif %}
     <hr>
