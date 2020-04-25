@@ -2,8 +2,6 @@
 
 import shlex, json
 import subprocess
-from subprocess
-
 ####################################################################
 #Basic run command function
 ####################################################################
