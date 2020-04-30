@@ -13,6 +13,7 @@ from .models import *
 from .tables import *
 from .filters import *
 
+import common_interactions_eospy.py
 
 class FilteredSingleTableView(LoginRequiredMixin, SingleTableView):
     filter_class = None
@@ -34,7 +35,6 @@ class FilteredSingleTableView(LoginRequiredMixin, SingleTableView):
 def index(request):
     return render(request, "index.html", {})
 
-
 @login_required
 def profile(request):
     if request.method == "POST":
@@ -42,6 +42,8 @@ def profile(request):
         group = get_object_or_404(Group, pk=request.POST["group"])
         future.group = group
         future.save()
+        #Future to a group future.group.pk
+        ftrtogrp(owner, owner, future.grout.pk, future.pk, owner.private_key)
         return HttpResponseRedirect("profile")
 
     context = {
@@ -70,6 +72,9 @@ class FutureCallCreate(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.buyer = self.request.user.a
+        #Creates a future half form.instance.fields
+        create_future(form.instance.buyer, form.instance.buyer, "", form.instance.lot, \
+        "", form.instance.start_time, form.instance.end_time, form.instance.request_expiration_time, form.instance.price, future_id, form.instance.buyer.private_key)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -84,6 +89,9 @@ class FuturePutCreate(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.seller = self.request.user.a
+        #Creates a future half
+        create_future(form.instance.seller, form.instance.seller, "", form.instance.lot, \
+        "", form.instance.start_time, form.instance.end_time, form.instance.request_expiration_time, form.instance.price, future_id, form.instance.seller.private_key)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -100,19 +108,16 @@ class FutureCallList(FilteredSingleTableView):
         return Future.objects.filter(
             seller=None,
             request_expiration_time__gte=timezone.now(),
-            # TODO spot__in=self.request.user.a.owned_spots.all(),
         )
 
 
-# TODO need special view to accept to specify group
 class FuturePutList(FutureCallList):
     template_name = "lists/future_put.html"
 
     def get_queryset(self):
-        # TODO is the exclude feasible?
         return Future.objects.filter(
             buyer=None, request_expiration_time__gte=timezone.now(),
-        )  # .exclude(spot__in=self.request.user.a.owned_spots.all())
+        )
 
 
 @login_required
@@ -139,6 +144,9 @@ def future_transact(request, pk):
         if not s:
             return e("You didn't Have A Qualifying Spot")
         f.seller = a
+        #Future complete
+        complete_future(f.buyer, f.buyer, f.seller, f.lot.pk, s.spot, f.start_time,  \
+        f.end_time, f.request_expiration_time, f.price, f.pk, f.buyer.private_key)
     else:
         if a.net_balance() < f.price:
             return e("You didn't Have Enough Funds")
@@ -150,6 +158,9 @@ def future_transact(request, pk):
         if not s:
             return e("The Seller didn't Have A Qualifying Spot")
         f.buyer = a
+        #Future complete
+        complete_future(f.seller, f.buyer, f.seller, f.lot.pk, s.spot, f.start_time,  \
+        f.end_time, f.request_expiration_time, f.price, f.pk, f.seller.private_key)
 
     f.spot = s.spot
     f.save()
@@ -157,6 +168,7 @@ def future_transact(request, pk):
     f.buyer.save()
     f.seller.balance += f.price
     f.seller.save()
+
     remainder = (s.end_time - s.start_time).days
     # now modify s (the original future)
     if s.start_time < f.start_time:
@@ -205,7 +217,11 @@ class OptionCallCreate(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.buyer = self.request.user.a
         form.instance.creator = self.request.user.a
-
+        #creates an option half on the call side
+        create_option(form.instance.creator, "", form.instance.buyer, form.instance.creator, "", \
+        form.instance.lot, form.instance.start_time, form.instance.end_time, form.instance.request_expiration_time, \
+        form.instance.request_expiration_time, form.instance.price, form.instance.fee, \
+        form.instance.collateral, form.instance.creator.private_key)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -229,6 +245,11 @@ class OptionPutCreate(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.seller = self.request.user.a
         form.instance.creator = self.request.user.a
+        #creates an option half on the put side
+        create_option(form.instance.creator, "", form.instance.seller, "", form.instance.creator, \
+        form.instance.lot, form.instance.start_time, form.instance.end_time, form.instance.request_expiration_time, \
+        form.instance.request_expiration_time, form.instance.price, form.instance.fee, \
+        form.instance.collateral, form.instance.creator.private_key)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -310,6 +331,9 @@ def option_transact(request, pk):
         f.buyer.save()
         f.buyer.balance += f.fee
         f.buyer.save()
+        complete_option(f.buyer, f.buyer, f.seller, f.buyer, f.seller, f.lot, f.start_time, \
+        f.end_time, f.request_expiration_time, f.request_expiration_time, f.price, f.fee, \
+        f.collateral, f.pk, f.buyer.private_key)
     # put
     else:
         if a.net_balance() < f.fee:
@@ -326,8 +350,12 @@ def option_transact(request, pk):
         f.buyer.save()
         f.seller.balance += f.fee
         f.seller.save()
+        complete_option(f.seller, f.seller, f.buyer, f.buyer, f.seller, f.lot, f.start_time, \
+        f.end_time, f.request_expiration_time, f.request_expiration_time, f.price, f.fee, \
+        f.collateral, f.pk, f.seller.private_key)
 
     f.spot = s.spot
+    # Completes the other half of an option
     f.save()
 
     return redirect("index")
@@ -335,23 +363,23 @@ def option_transact(request, pk):
 
 @login_required
 def option_exercise(request, pk):
-    # TODO consider groups
-    # TODO should delete on failure
     e = lambda msg: render(request, "error.html", {"msg": msg})
     o = get_object_or_404(Option, pk=pk)
     # a is NOT the creator
     a = request.user.a
     # case for put
+    # Option exercise, either exercise put or call
     if o.creator == o.seller:
         if a.net_balance() < o.price:
-
             return e("You do not have enough to pay to exercise the option")
+        exrcall(o.creator, o.creator, o.seller, o.pk, o.seller.private_key)
     # case for call
     if o.creator == o.seller:
         if o.seller.balance < o.price:
             o.creator.balance -= o.collateral
             a.balance += o.collateral
             o.delete()
+            exrcall(o.creator, o.creator, o.seller, o.pk, o.creator.private_key)
     f = Future()
 
     f.buyer = o.buyer
@@ -412,7 +440,6 @@ def option_exercise(request, pk):
         f2.price = s.price * (f2.end_time - f2.start_time).days / remainder
         f2.spot = s.spot
         f2.save()
-    # do price business
 
     s.delete()
     return redirect("index")
@@ -433,7 +460,6 @@ class UserUnfullfilledFutureList(FutureCallList):
             seller=None,
             buyer=self.request.user.a,
             request_expiration_time__gte=timezone.now(),
-            # TODO spot__in=self.request.user.a.owned_spots.all(),
         )
 
 
@@ -462,6 +488,9 @@ class GroupCreate(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.creator = self.request.user.a
+        #Create Group
+        crtgroup(form.instance.creator, "title", form.instance.creator, form.instance.fee, \
+        form.instance.min_ratio, "", form.instance.creator.private_key)
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -486,19 +515,17 @@ def group_join(request, pk):
     g = get_object_or_404(Group, pk=pk)
     a = request.user.a
 
-    # TODO a person joining a group could make the minimums fail
-
     if g.creator == a:
         return e("You're Automatically In Your Own Group")
     if a.net_balance() < g.fee:
         return e("You Don't Have Enough (Un-Reserved) Funds")
-    # TODO Handle Ratios
 
     a.balance -= g.fee
     a.save()
     g.creator.balance += g.fee
     g.creator.save()
-
+    #Join a group
+    joingroup(a, a, g.pk, a.private_key)
     g.members.add(a)
     return redirect("index")
 

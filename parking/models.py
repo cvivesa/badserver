@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
+import eospy.keys
 
 class EOSAccount(models.Model):
     user = models.OneToOneField(User, related_name="a", on_delete=models.CASCADE)
@@ -22,6 +23,7 @@ class EOSAccount(models.Model):
 
     #  find out precision and decide on default
     balance = models.DecimalField(default=1000.0, max_digits=10, decimal_places=2)
+    private_key = models.TextField(max_length=SOME_NUM, blank=True)
 
     def __str__(self):
         return str(self.user)
@@ -175,4 +177,6 @@ class Option(models.Model):
 @receiver(post_save, sender=User, dispatch_uid="create_user_eos_account")
 def create_user_eos_account(sender, instance, created, **kwargs):
     if created:
-        EOSAccount.objects.create(user=instance)
+        obj = EOSAccount.objects.create(user=instance)
+        EOSKey = eospy.keys.EOSKey()
+        obj.private_key = str(EOSkey)
