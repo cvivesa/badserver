@@ -65,3 +65,4 @@ def get_allowed_spots(name, time, num_sublots):
         for spot in lot:
             if(spot[0] == user or spot[1] in groups):
                 allowed_spots.append(spot[3])
+    return allowed_spots;
