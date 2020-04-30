@@ -6,7 +6,8 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 
-import eospy.keys
+from eospy import keys
+
 
 class EOSAccount(models.Model):
     user = models.OneToOneField(User, related_name="a", on_delete=models.CASCADE)
@@ -47,7 +48,9 @@ class EOSAccount(models.Model):
         return Future.objects.filter(spot=spot).owned_by_self(self, start, end).exists()
 
     def owns(self, start, end):
-        return Future.objects.owned_by_self(self, start, end).values_list("spot", flat=True)
+        return Future.objects.owned_by_self(self, start, end).values_list(
+            "spot", flat=True
+        )
 
 
 class Group(models.Model):
@@ -173,10 +176,9 @@ class Option(models.Model):
         return self.creator == self.seller
 
 
-
 @receiver(post_save, sender=User, dispatch_uid="create_user_eos_account")
 def create_user_eos_account(sender, instance, created, **kwargs):
     if created:
         obj = EOSAccount.objects.create(user=instance)
-        EOSKey = eospy.keys.EOSKey()
+        EOSKey = keys.EOSKey()
         obj.private_key = str(EOSkey)
