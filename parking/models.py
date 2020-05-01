@@ -65,7 +65,9 @@ class Group(models.Model):
 
     def futures(self):
         return Future.objects.filter(group=self, seller__isnull=False)
-
+    
+    def get_membership(self):
+        return len(self.members.all())
 
 class Lot(models.Model):
     name = models.CharField(max_length=50)
@@ -89,11 +91,42 @@ class Spot(models.Model):
 #  two back-to-back purchases that combined cover the range
 #  selling a spot and buying it back
 class FutureQuerySet(models.QuerySet):
+
+    def owned_by(self, a, start, end):
+        sales = self.filter(seller=a, buyer__isnull=False).filter(
+            Q(start_time__gte=start, start_time__lte=end)
+            | Q(end_time__gte=start, end_time__lte=end)
+            | Q(start_time__lte=start, end_time__gte=end),
+        )
+
+        return self.filter(
+            start_time__lte=start, end_time__gte=end, buyer=a, seller__isnull=False,
+        ).exclude(id__in=sales)
+
+    def owned_by_groups(self, a, start, end):
+        groups = a.joined_groups.all()
+        owners = groups.values_list("creator", flat=True)
+
+        sales = self.filter(seller__in=owners, buyer__isnull=False).filter(
+            Q(start_time__gte=start, start_time__lte=end)
+            | Q(end_time__gte=start, end_time__lte=end)
+            | Q(start_time__lte=start, end_time__gte=end),
+        )
+
+        return self.filter(
+            start_time__gte=start,
+            end_time__lte=end,
+            group__in=groups,
+            seller__isnull=False,
+            buyer__isnull=False,
+        ).exclude(id__in=sales)
+    #TODO <-------------- FIX THIS, THIS CODE IS NEWER, USING OLDER CODE UNTIL THE CRAP BELOW GETS FIXED
+    
     def owned_by_self(self, a, start, end):
         return self.filter(
             start_time__lte=start, end_time__gte=end, buyer=a, seller__isnull=False,
         )
-
+    '''
     def owned_by_groups(self, a, start, end):
         groups = a.joined_groups.all()
         owners = groups.values_list("creator", flat=True)
@@ -109,7 +142,7 @@ class FutureQuerySet(models.QuerySet):
     def accessible(self, a, start, end):
         return queryset.owned_by_self(a, start, end).union(
             queryset.owned_by_groups(a, start, end)
-        )
+        )'''
 
 
 class Future(models.Model):

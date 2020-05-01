@@ -59,6 +59,14 @@ class GroupTable(tables.Table):
         model = Group
         fields = ("name", "fee", "minimum_price", "minimum_ratio")
 
+class GroupAvailableTable(tables.Table):
+    membership = tables.Column(
+        accessor=tables.utils.A("get_membership"), orderable=False
+    )
+
+    class Meta:
+        model = Group
+        fields = ("name", "fee", "minimum_price", "minimum_ratio","membership")
 
 class UnfullFilledOptionTable(tables.Table):
     # put = tables.BooleanColumn(tables.utils.A("buyer__isnull"))

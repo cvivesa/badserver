@@ -25,6 +25,9 @@ urlpatterns = [
     path("groups/create", views.GroupCreate.as_view(), name="group_create"),
     path("groups/list", views.GroupList.as_view(), name="group_list"),
     path("groups/join/<int:pk>", views.group_join, name="group_join"),
+    path("groups/available", views.GroupAvailable.as_view(), name="group_available"),
+    path("groups/owned", views.GroupOwned.as_view(), name="group_owned"),
+
     path("accounts/spots", views.AccessibleSpotList.as_view(), name="accessible"),
     path(
         "accounts/spots/pending",

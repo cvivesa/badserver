@@ -479,6 +479,26 @@ class GroupList(FilteredSingleTableView):
             id__in=self.request.user.a.joined_groups.all()
         )
 
+class GroupAvailable(FilteredSingleTableView):
+    table_class = GroupAvailableTable
+    template_name = "lists/base.html"
+    filter_class = GroupAvailableFilter
+
+    def get_queryset(self):
+        return Group.objects.filter(
+            (Q(creator=self.request.user.a) | Q(id__in=self.request.user.a.joined_groups.all()))
+        
+        )
+
+class GroupOwned(FilteredSingleTableView):
+    table_class = GroupAvailableTable
+    template_name = "lists/base.html"
+    filter_class = GroupAvailableFilter
+
+    def get_queryset(self):
+        return Group.objects.filter(
+            (Q(creator=self.request.user.a)))
+
 
 @login_required
 def group_join(request, pk):
